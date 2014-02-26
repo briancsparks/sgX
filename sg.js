@@ -5,6 +5,8 @@
 
 var _             = require('underscore');
 var fs            = require('fs');
+var glob          = require('glob');
+var path          = require('path');
 
 var lib = {};
 
@@ -53,6 +55,11 @@ var captures = lib.captures = function(re, str, callback) {
   return callback.apply(this, [m].concat(_.slice(m)));
 };
 
+var capturesSync = lib.captures = function(re, str) {
+  var m = re.exec(str);
+  return Array.prototype.slice.apply(m);
+};
+
 var __each = lib.__each = function(coll, fn, callback) {
 
   var i = 0, end;
@@ -95,6 +102,16 @@ var __each = lib.__each = function(coll, fn, callback) {
   return doOne();
 };
 
+var __eachll = lib.__eachll = function(coll, fn, callback) {
+  var finalFn = _.after(coll.length, function() {
+    callback();
+  });
+
+  for (var i = 0, l = coll.length; i < l; i++) {
+    fn(coll[i], finalFn, i);
+  }
+};
+
 var __run = lib.__run = function(fns, callback_) {
   var callback = callback_ || function() {};
   return __each(fns, 
@@ -108,9 +125,30 @@ var __run = lib.__run = function(fns, callback_) {
   );
 };
 
+var findFiles = lib.findFiles = function(pattern, options, callback) {
+  return glob(pattern, options, function(err, filenames_) {
+    if (err) { return callback(err); }
+
+    var filenames = [];
+    return __eachll(filenames_, 
+      function(filename, next) {
+        return fs.stat(filename, function(err, stats) {
+          if (!err && stats.isFile()) {
+            filenames.push(filename);
+          }
+          return next();
+        });
+      },
+      function(errs) {
+        return callback(null, filenames);
+      }
+    );
+  });
+};
+
 var eachLine = lib.eachLine = function(pattern, options_, eachCallback, finalCallback) {
   var options = _.defaults({}, options_ || {}, {cwd: process.cwd()}),
-      num = 0, total = 0;
+      total = 0;
 
   var eachLineOneFile = function(filename, next) {
     return fs.readFile(path.join(options.cwd, filename), 'utf8', function(err, contents) {
@@ -121,12 +159,13 @@ var eachLine = lib.eachLine = function(pattern, options_, eachCallback, finalCal
         lines = lines.filter(options.lineFilter);
       }
 
-      num = 0;
-      _.each(lines, function(line) {
-        num++;
+      for (var i = 0, l = lines.length; i < l; ++i) {
         total++;
-        eachCallback(line, num, filename, total);
-      });
+        var result = eachCallback(lines[i], i, filename, total);
+        if (result === 'SG.nextFile') {
+          return next();
+        }
+      }
 
       return next();
     });
@@ -141,11 +180,23 @@ var eachLine = lib.eachLine = function(pattern, options_, eachCallback, finalCal
   }
 
   /* otherwise */
+  options.filenameFilter = options.filenameFilter || function(){return true;};
+
   return glob(pattern, options, function(err, files) {
     if (err) { return finalCallback(err); }
 
     return __each(files, 
-      eachLineOneFile, 
+      function(filename, next) {
+
+        return fs.stat(filename, function(err, stats) {
+          if (err) { return next(); }
+          if (!stats.isFile()) { return next(); }
+
+          if (!options.filenameFilter(filename)) { return next(); }
+
+          return eachLineOneFile(filename, next);
+        });
+      },
       
       function() {
         return finalCallback();
@@ -165,7 +216,7 @@ var parseOn2Chars = lib.parseOn2Chars = function(str, sep1, sep2) {
 };
 
 var exportify = lib.exportify = function(obj) {
-  for (var k in obj) {
+  for (var key in obj) {
     exports[key] = obj[key];
   }
 };
@@ -232,15 +283,15 @@ var TheARGV = function(params_) {
     curr = process.argv[i];
 
     // --foo=bar, --foo=
-    if ((m = /--([a-zA-Z_0-9\-]+)=([^ ]*)/.exec(curr)) && m.length === 3) {
+    if ((m = /--([a-zA-Z_0-9\-]+)=([^ ]+)/.exec(curr)) && m.length === 3) {
       self.setFlag([m[1]], m[2]);
     }
     // --foo-
     else if ((m = /--([^ ]+)-/.exec(curr))) {
       self.setFlag([m[1]], false);
     }
-    // --foo bar
-    else if ((m = /--([^ ]+)/.exec(curr)) && next && (m2 = /^([^\-][^ ]*)/.exec(next))) {
+    // --foo= bar
+    else if ((m = /--([^ ]+)=/.exec(curr)) && next && (m2 = /^([^\-][^ ]*)/.exec(next))) {
       self.setFlag([m[1]], m2[1]);
       i++;
     }
@@ -277,7 +328,7 @@ var TheARGV = function(params_) {
 
 var theARGV = null;
 var ARGV = lib.ARGV = function(params) {
-  return theARGV || new TheARGV(params);
+  return theARGV || (theARGV = new TheARGV(params));
 };
 
 

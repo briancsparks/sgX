@@ -3,21 +3,21 @@
  *  sg!
  */
 
+var sg = {};
+
 var _             = require('underscore');
 var fs            = require('fs');
 var glob          = require('glob');
 var path          = require('path');
 
-var lib = {};
-
-var firstKey = lib.firstKey = function(obj) {
+var firstKey = sg.firstKey = function(obj) {
   for (var k in obj) {
     return k;
   }
   return ;
 };
 
-var numKeys = lib.numKeys = function(obj) {
+var numKeys = sg.numKeys = function(obj) {
   var num = 0;
   for (var k in obj) {
     num++;
@@ -26,13 +26,13 @@ var numKeys = lib.numKeys = function(obj) {
   return num;
 };
 
-var kv = lib.kv = function(o, k, v) {
+var kv = sg.kv = function(o, k, v) {
   o = o || {};
   o[k] = v;
   return o;
 };
 
-var context = lib.context = function(key, def) {
+var context = sg.context = function(key, def) {
   var keyIndex = -1;
   for (var i = 0; i < process.argv.length; i++) {
     if (process.argv[i] === "--" + key) {
@@ -50,17 +50,17 @@ var context = lib.context = function(key, def) {
   }
 };
 
-var captures = lib.captures = function(re, str, callback) {
+var captures = sg.captures = function(re, str, callback) {
   var m = re.exec(str);
   return callback.apply(this, [m].concat(_.slice(m)));
 };
 
-var capturesSync = lib.captures = function(re, str) {
+var capturesSync = sg.captures = function(re, str) {
   var m = re.exec(str);
   return Array.prototype.slice.apply(m);
 };
 
-var __each = lib.__each = function(coll, fn, callback) {
+var __each = sg.__each = function(coll, fn, callback) {
 
   var i = 0, end;
   var indexes, values, errors, hasError = false;
@@ -102,7 +102,7 @@ var __each = lib.__each = function(coll, fn, callback) {
   return doOne();
 };
 
-var __eachll = lib.__eachll = function(coll, fn, callback) {
+var __eachll = sg.__eachll = function(coll, fn, callback) {
   var finalFn = _.after(coll.length, function() {
     callback();
   });
@@ -112,12 +112,12 @@ var __eachll = lib.__eachll = function(coll, fn, callback) {
   }
 };
 
-var __run = lib.__run = function(fns, callback_) {
+var __run = sg.__run = function(fns, callback_) {
   var callback = callback_ || function() {};
-  return __each(fns, 
+  return __each(fns,
     function(fn, next) {
       return fn(next);
-    }, 
+    },
 
     function() {
       return callback();
@@ -125,12 +125,12 @@ var __run = lib.__run = function(fns, callback_) {
   );
 };
 
-var findFiles = lib.findFiles = function(pattern, options, callback) {
+var findFiles = sg.findFiles = function(pattern, options, callback) {
   return glob(pattern, options, function(err, filenames_) {
     if (err) { return callback(err); }
 
     var filenames = [];
-    return __eachll(filenames_, 
+    return __eachll(filenames_,
       function(filename, next) {
         return fs.stat(filename, function(err, stats) {
           if (!err && stats.isFile()) {
@@ -146,7 +146,7 @@ var findFiles = lib.findFiles = function(pattern, options, callback) {
   });
 };
 
-var eachLine = lib.eachLine = function(pattern, options_, eachCallback, finalCallback) {
+var eachLine = sg.eachLine = function(pattern, options_, eachCallback, finalCallback) {
   var options = _.defaults({}, options_ || {}, {cwd: process.cwd()}),
       total = 0;
 
@@ -185,7 +185,7 @@ var eachLine = lib.eachLine = function(pattern, options_, eachCallback, finalCal
   return glob(pattern, options, function(err, files) {
     if (err) { return finalCallback(err); }
 
-    return __each(files, 
+    return __each(files,
       function(filename, next) {
 
         return fs.stat(filename, function(err, stats) {
@@ -197,7 +197,7 @@ var eachLine = lib.eachLine = function(pattern, options_, eachCallback, finalCal
           return eachLineOneFile(filename, next);
         });
       },
-      
+
       function() {
         return finalCallback();
       }
@@ -205,7 +205,7 @@ var eachLine = lib.eachLine = function(pattern, options_, eachCallback, finalCal
   });
 };
 
-var parseOn2Chars = lib.parseOn2Chars = function(str, sep1, sep2) {
+var parseOn2Chars = sg.parseOn2Chars = function(str, sep1, sep2) {
   var ret = {};
   _.each(str.split(sep1).filter(_.identity), function(kv) {
     var arr = kv.split(sep2), k = arr[0], v = arr[1];
@@ -215,7 +215,7 @@ var parseOn2Chars = lib.parseOn2Chars = function(str, sep1, sep2) {
   return ret;
 };
 
-var exportify = lib.exportify = function(obj) {
+var exportify = sg.exportify = function(obj) {
   for (var key in obj) {
     exports[key] = obj[key];
   }
@@ -223,7 +223,7 @@ var exportify = lib.exportify = function(obj) {
 
 var lineNum = 0;
 var remainder = '';
-var ARGF = lib.ARGF = function(callback, fnDone_) {
+var ARGF = sg.ARGF = function(callback, fnDone_) {
   var fnDone = fnDone_ || function() {};
 
   var doOneLine = function(line) {
@@ -248,7 +248,7 @@ var ARGF = lib.ARGF = function(callback, fnDone_) {
   });
 };
 
-var awk = lib.awk = function(callback, fnDone_) {
+var awk = sg.awk = function(callback, fnDone_) {
   return ARGF(function(line, lineNum) {
     return callback(line.split(' '), lineNum);
   }, fnDone_);
@@ -327,11 +327,11 @@ var TheARGV = function(params_) {
 };
 
 var theARGV = null;
-var ARGV = lib.ARGV = function(params) {
+var ARGV = sg.ARGV = function(params) {
   return theARGV || (theARGV = new TheARGV(params));
 };
 
 
 
-exportify(lib);
+exportify(sg);
 

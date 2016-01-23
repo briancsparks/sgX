@@ -3,12 +3,24 @@
  *  sg!
  */
 
-var sg = {};
+var sg = {extlibs:{}};
 
-var _             = require('underscore');
-var fs            = require('fs');
-var glob          = require('glob');
+var _             = sg.extlibs._            = require('underscore');
+var glob          = sg.extlibs.glob         = require('glob');
+var async         = sg.extlibs.async        = require('async');
+var fs            = sg.extlibs.fs           = require('fs-extra');
+var mkdirp        = sg.extlibs.mkdirp       = require('mkdirp');
+var request       = sg.extlibs.superagent   = require('superagent');
+var moment        = sg.extlibs.moment       = require('moment');
+var shelljs       = sg.extlibs.shelljs      = require('shelljs');
+
+sg.extlibs.request = sg.extlibs.superagent;
+
 var path          = require('path');
+
+sg.requireShellJsGlobal = function() {
+  require('shelljs/global');
+};
 
 var firstKey = sg.firstKey = function(obj) {
   for (var k in obj) {
@@ -26,137 +38,123 @@ var numKeys = sg.numKeys = function(obj) {
   return num;
 };
 
-var kv = sg.kv = function(o, k, v) {
+var okv = sg.okv = function(o, k, v) {
   o = o || {};
   o[k] = v;
   return o;
 };
 
-var context = sg.context = function(key, def) {
-  var keyIndex = -1;
-  for (var i = 0; i < process.argv.length; i++) {
-    if (process.argv[i] === "--" + key) {
-      keyIndex = i;
-      break;
-    }
-  }
-
-  if (keyIndex >= 0 && keyIndex+1 < process.argv.length) {
-    return process.argv[keyIndex + 1];
-  }
-
-  if (def) {
-    return def;
-  }
+var kv = sg.kv = function(k, v) {
+  return okv({}, k, v);
 };
 
-var captures = sg.captures = function(re, str, callback) {
-  var m = re.exec(str);
-  return callback.apply(this, [m].concat(_.slice(m)));
+var parseOn2Chars = sg.parseOn2Chars = function(str, sep1, sep2) {
+  var ret = {};
+  _.each(str.split(sep1).filter(_.identity), function(kv) {
+    var arr = kv.split(sep2), k = arr[0], v = arr[1];
+    ret[k.toLowerCase()] = v.toLowerCase();
+  });
+
+  return ret;
 };
 
-var capturesSync = sg.captures = function(re, str) {
-  var m = re.exec(str);
-  return Array.prototype.slice.apply(m);
-};
+var __each = sg.__each = function(collection, fn, callback) {
 
-var __each = sg.__each = function(coll, fn, callback) {
-
-  var i = 0, end;
   var indexes, values, errors, hasError = false;
 
-  if (_.isArray(coll)) {
-    indexes = _.range(coll.length);
+  if (_.isArray(collection)) {
+    indexes = _.range(collection.length);
     values = [];
     errors = [];
   }
   else {
-    indexes = _.keys(coll);
+    indexes = _.keys(collection);
     values = {};
     errors = {};
   }
 
-  end = indexes.length;
+  var i = 0, end = indexes.length;
 
   var doOne = function() {
-    var item = coll[indexes[i]];
-    var next = function(err, val) {
+
+    var indexKey    = indexes[i];
+    var item        = collection[indexKey];
+
+    var next = function(err, value) {
       if (err) { hasError = true; }
 
-      errors[i] = err;
-      values[i] = val;
+      errors[indexKey] = err;
+      values[indexKey] = value;
 
       i += 1;
       if (i < end) {
-        return process.nextTick(function() {
-          doOne();
-        });
+        return process.nextTick(doOne);
       }
 
       return callback(hasError ? errors : null, values);
     };
 
-    return fn(item, next, indexes[i]);
+    return fn(item, next, indexKey, collection);
   };
 
+  // Start the ball rolling
   return doOne();
 };
 
-var __eachll = sg.__eachll = function(coll, fn, callback) {
-  var finalFn = _.after(coll.length, function() {
+var __eachll = sg.__eachll = function(collection, fn, callback) {
+  var finalFn = _.after(collection.length, function() {
     callback();
   });
 
-  for (var i = 0, l = coll.length; i < l; i++) {
-    fn(coll[i], finalFn, i);
+  for (var i = 0, l = collection.length; i < l; i++) {
+    fn(collection[i], finalFn, i);
   }
 };
 
 var __run = sg.__run = function(fns, callback_) {
   var callback = callback_ || function() {};
-  return __each(fns,
-    function(fn, next) {
-      return fn(next);
-    },
 
-    function() {
-      return callback();
-    }
-  );
+  return __each(fns, function(fn, next) {
+
+    return fn(next);
+
+  }, function() {
+
+    return callback();
+  });
 };
 
 var findFiles = sg.findFiles = function(pattern, options, callback) {
   return glob(pattern, options, function(err, filenames_) {
     if (err) { return callback(err); }
 
+    /* otherwise */
     var filenames = [];
-    return __eachll(filenames_,
-      function(filename, next) {
-        return fs.stat(filename, function(err, stats) {
-          if (!err && stats.isFile()) {
-            filenames.push(filename);
-          }
-          return next();
-        });
-      },
-      function(errs) {
-        return callback(null, filenames);
-      }
-    );
+    return __eachll(filenames_, function(filename, next) {
+      return fs.stat(filename, function(err, stats) {
+        if (!err && stats.isFile()) {
+          filenames.push(filename);
+        }
+        return next();
+      });
+
+    }, function(errs) {
+      return callback(null, filenames);
+    });
   });
 };
 
 var eachLine = sg.eachLine = function(pattern, options_, eachCallback, finalCallback) {
-  var options = _.defaults({}, options_ || {}, {cwd: process.cwd()}),
-      total = 0;
+  var options = _.defaults({}, options_ || {}, {cwd: process.cwd()});
+  var total   = 0;
 
-  var eachLineOneFile = function(filename, next) {
+  var eachLineOfOneFile = function(filename, next) {
     return fs.readFile(path.join(options.cwd, filename), 'utf8', function(err, contents) {
       if (err) { return next(err); }
 
       var lines = contents.split('\n');
       if (options.lineFilter) {
-        lines = lines.filter(options.lineFilter);
+        lines = _.filter(lines, options.lineFilter);
       }
 
       for (var i = 0, l = lines.length; i < l; ++i) {
@@ -174,7 +172,7 @@ var eachLine = sg.eachLine = function(pattern, options_, eachCallback, finalCall
   // Is this a glob?
   if (!/\*/.exec(pattern)) {
     // No, not a glob
-    return eachLineOneFile(arguments[0], function(err) {
+    return eachLineOfOneFile(arguments[0], function(err) {
       return finalCallback(err);
     });
   }
@@ -185,34 +183,21 @@ var eachLine = sg.eachLine = function(pattern, options_, eachCallback, finalCall
   return glob(pattern, options, function(err, files) {
     if (err) { return finalCallback(err); }
 
-    return __each(files,
-      function(filename, next) {
+    return __each(files, function(filename, next) {
 
-        return fs.stat(filename, function(err, stats) {
-          if (err) { return next(); }
-          if (!stats.isFile()) { return next(); }
+      return fs.stat(filename, function(err, stats) {
+        if (err)              { return next(); }
+        if (!stats.isFile())  { return next(); }
 
-          if (!options.filenameFilter(filename)) { return next(); }
+        if (!options.filenameFilter(filename)) { return next(); }
 
-          return eachLineOneFile(filename, next);
-        });
-      },
+        return eachLineOfOneFile(filename, next);
+      });
 
-      function() {
-        return finalCallback();
-      }
-    );
+    }, function() {
+      return finalCallback();
+    });
   });
-};
-
-var parseOn2Chars = sg.parseOn2Chars = function(str, sep1, sep2) {
-  var ret = {};
-  _.each(str.split(sep1).filter(_.identity), function(kv) {
-    var arr = kv.split(sep2), k = arr[0], v = arr[1];
-    ret[k.toLowerCase()] = v.toLowerCase();
-  });
-
-  return ret;
 };
 
 var exportify = sg.exportify = function(obj) {
@@ -260,22 +245,25 @@ var TheARGV = function(params_) {
   var params = params_ || {};
 
   self.executable = process.argv[0];
-  self.script = process.argv[1];
-  self.flags = {};
-  self.args = [];
+  self.script     = process.argv[1];
+  self.flags      = {};
+  self.args       = [];
+  self.args2      = [];
 
   self.setFlag = function(key, value) {
     self.flags[key] = value;
     if (self.flags.hasOwnProperty(key) || !self.hasOwnProperty(key)) {
       self[key] = value;
     }
+
+    // set the short version of the flag
     if (params.short && params.short[key]) {
       self.setFlags(params.short[key], value);
     }
   };
 
   // Initialize -- scan the arguments
-  var curr;
+  var curr, argset = 0;
   for (var i = 2; i < process.argv.length; i++) {
     var next = i+1 < process.argv.length ? process.argv[i+1] : null;
     var m, m2;
@@ -313,16 +301,18 @@ var TheARGV = function(params_) {
       self.setFlag([m[1]], true);
     }
     else if (curr === '--') {
-      break;
+      argset = 1;
+    }
+    else if (curr === '---') {
+      argset = 2;
     }
     else {
-      self.args.push(curr);
+      if (argset === 1) {
+        self.args.push(curr);
+      } else if (argset === 2) {
+        self.args2.push(curr);
+      }
     }
-  }
-
-  for (; i < process.argv.length; i++) {
-    curr = process.argv[i];
-    self.args.push(curr);
   }
 };
 

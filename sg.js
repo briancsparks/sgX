@@ -3,33 +3,28 @@
  *  sg!
  */
 
-var sg = {extlibs:{}};
+var _             = require('underscore');
+var util          = require('util');
+var urlLib        = require('url');
 
-var _             = sg.extlibs._            = require('underscore');
-var glob          = sg.extlibs.glob         = require('glob');
-var async         = sg.extlibs.async        = require('async');
-var fs            = sg.extlibs.fs           = require('fs-extra');
-var mkdirp        = sg.extlibs.mkdirp       = require('mkdirp');
-var request       = sg.extlibs.superagent   = require('superagent');
-var moment        = sg.extlibs.moment       = require('moment');
-var shelljs       = sg.extlibs.shelljs      = require('shelljs');
+// Here I am :)
+var sg    = {extlibs:{_:_}};
+var tests = [];
 
-sg.extlibs.request = sg.extlibs.superagent;
+sg._ = _;
 
-var path          = require('path');
-
-sg.requireShellJsGlobal = function() {
-  require('shelljs/global');
+sg.isDebug = function() {
+  return process.env.NODE_ENV === 'development';
 };
 
-var firstKey = sg.firstKey = function(obj) {
+sg.firstKey = function(obj) {
   for (var k in obj) {
     return k;
   }
   return ;
 };
 
-var numKeys = sg.numKeys = function(obj) {
+sg.numKeys = function(obj) {
   var num = 0;
   for (var k in obj) {
     num++;
@@ -38,17 +33,54 @@ var numKeys = sg.numKeys = function(obj) {
   return num;
 };
 
-var okv = sg.okv = function(o, k, v) {
+sg.kv = function(o, k, v) {
+  if (arguments.length === 2) {
+    return kv(null, o, k);
+  }
+
   o = o || {};
   o[k] = v;
   return o;
 };
 
-var kv = sg.kv = function(k, v) {
-  return okv({}, k, v);
+sg.reduce = function(collection, initial, fn) {
+  return _.reduce(collection, fn, initial);
 };
 
-var parseOn2Chars = sg.parseOn2Chars = function(str, sep1, sep2) {
+sg.extract = function(collection, name) {
+  var value = collection[name];
+  delete collection[name];
+  return value;
+};
+
+sg.dashifyKey = function(key) {
+  return key.replace(/\./g, '-');
+};
+
+var safeJSONParse = sg.safeJSONParse = function(str, def) {
+  if (str !== '') {
+    try {
+      return JSON.parse(str);
+    } catch(err) {
+      verbose(2, "Error parsing JSON", str);
+    }
+  }
+
+  return def || {};
+};
+
+sg.startsWith = function(longStr, start) {
+  if (!longStr)                      { return false; }
+  if (longStr.length < start.length) { return false; }
+
+  if (longStr.substr(0, start.length).toLowerCase() === start.toLowerCase()) {
+    return true;
+  }
+
+  return false;
+};
+
+sg.parseOn2Chars = function(str, sep1, sep2) {
   var ret = {};
   _.each(str.split(sep1).filter(_.identity), function(kv) {
     var arr = kv.split(sep2), k = arr[0], v = arr[1];
@@ -58,185 +90,91 @@ var parseOn2Chars = sg.parseOn2Chars = function(str, sep1, sep2) {
   return ret;
 };
 
-var __each = sg.__each = function(collection, fn, callback) {
+sg.startOfDay = function(d) {
+  var day = new Date(d);
 
-  var indexes, values, errors, hasError = false;
+  day.setMilliseconds(0);
+  day.setSeconds(0);
+  day.setMinutes(0);
+  day.setHours(0);
 
-  if (_.isArray(collection)) {
-    indexes = _.range(collection.length);
-    values = [];
-    errors = [];
+  return day;
+};
+
+/**
+ *  Generate a random string of the given length.
+ */
+var alnumCharSet = sg.alnumCharSet = 'ABCDEFGHIJKLNMOPQRSTUVWXYZ0123456789abcdefghijklnmopqrstuvwxyz';
+sg.randomString = function(length, charSet) {
+  length  = length  || 64;
+  charSet = charSet || alnumCharSet;
+
+  var result = '';
+  for (var i = 0; i < length; i++) {
+    result = result + charSet[Math.floor(Math.random() * charSet.length)];
   }
-  else {
-    indexes = _.keys(collection);
-    values = {};
-    errors = {};
-  }
 
-  var i = 0, end = indexes.length;
+  return result;
+};
 
-  var doOne = function() {
+var reportError = sg.reportError = function(error) {
+};
 
-    var indexKey    = indexes[i];
-    var item        = collection[indexKey];
+sg.runTest = function(testFn) {
+};
 
-    var next = function(err, value) {
-      if (err) { hasError = true; }
+var inspect = sg.inspect = function(x) {
+  return util.inspect(x, {depth:null, colors:true});
+};
 
-      errors[indexKey] = err;
-      values[indexKey] = value;
+var verbosity = sg.verbosity = function() {
 
-      i += 1;
-      if (i < end) {
-        return process.nextTick(doOne);
-      }
+  var vLevel = 0;
+  if      (theARGV.vvvvvvvvverbose)  { vLevel = 9; }
+  else if (theARGV.vvvvvvvverbose)   { vLevel = 8; }
+  else if (theARGV.vvvvvvverbose)    { vLevel = 7; }
+  else if (theARGV.vvvvvverbose)     { vLevel = 6; }
+  else if (theARGV.vvvvverbose)      { vLevel = 5; }
+  else if (theARGV.vvvverbose)       { vLevel = 4; }
+  else if (theARGV.vvverbose)        { vLevel = 3; }
+  else if (theARGV.vverbose)         { vLevel = 2; }
+  else if (theARGV.verbose)          { vLevel = 1; }
 
-      return callback(hasError ? errors : null, values);
-    };
+  return vLevel;
+};
 
-    return fn(item, next, indexKey, collection);
+var logFn = function() {
+  console.log.apply(console, arguments);
+};
+
+// Wrap the log fn
+(function() {
+  var oldLogFn = logFn;
+  logFn = function() {
+    return oldLogFn.apply(oldLogFn, _.map(arguments, function(arg) {
+      return inspect(arg);
+    }));
   };
+}());
 
-  // Start the ball rolling
-  return doOne();
-};
-
-var __eachll = sg.__eachll = function(collection, fn, callback) {
-  var finalFn = _.after(collection.length, function() {
-    callback();
-  });
-
-  for (var i = 0, l = collection.length; i < l; i++) {
-    fn(collection[i], finalFn, i);
-  }
-};
-
-var __run = sg.__run = function(fns, callback_) {
-  var callback = callback_ || function() {};
-
-  return __each(fns, function(fn, next) {
-
-    return fn(next);
-
-  }, function() {
-
-    return callback();
-  });
-};
-
-var findFiles = sg.findFiles = function(pattern, options, callback) {
-  return glob(pattern, options, function(err, filenames_) {
-    if (err) { return callback(err); }
-
-    /* otherwise */
-    var filenames = [];
-    return __eachll(filenames_, function(filename, next) {
-      return fs.stat(filename, function(err, stats) {
-        if (!err && stats.isFile()) {
-          filenames.push(filename);
-        }
-        return next();
-      });
-
-    }, function(errs) {
-      return callback(null, filenames);
-    });
-  });
-};
-
-var eachLine = sg.eachLine = function(pattern, options_, eachCallback, finalCallback) {
-  var options = _.defaults({}, options_ || {}, {cwd: process.cwd()});
-  var total   = 0;
-
-  var eachLineOfOneFile = function(filename, next) {
-    return fs.readFile(path.join(options.cwd, filename), 'utf8', function(err, contents) {
-      if (err) { return next(err); }
-
-      var lines = contents.split('\n');
-      if (options.lineFilter) {
-        lines = _.filter(lines, options.lineFilter);
-      }
-
-      for (var i = 0, l = lines.length; i < l; ++i) {
-        total++;
-        var result = eachCallback(lines[i], i, filename, total);
-        if (result === 'SG.nextFile') {
-          return next();
-        }
-      }
-
-      return next();
-    });
+sg.mkVerbose = function(modName) {
+  return function(level /*, msg, options, ...*/) {
+    if (verbosity() >= level) {
+      logFn(_.rest(arguments));
+    }
   };
-
-  // Is this a glob?
-  if (!/\*/.exec(pattern)) {
-    // No, not a glob
-    return eachLineOfOneFile(arguments[0], function(err) {
-      return finalCallback(err);
-    });
-  }
-
-  /* otherwise */
-  options.filenameFilter = options.filenameFilter || function(){return true;};
-
-  return glob(pattern, options, function(err, files) {
-    if (err) { return finalCallback(err); }
-
-    return __each(files, function(filename, next) {
-
-      return fs.stat(filename, function(err, stats) {
-        if (err)              { return next(); }
-        if (!stats.isFile())  { return next(); }
-
-        if (!options.filenameFilter(filename)) { return next(); }
-
-        return eachLineOfOneFile(filename, next);
-      });
-
-    }, function() {
-      return finalCallback();
-    });
-  });
 };
 
-var exportify = sg.exportify = function(obj) {
-  for (var key in obj) {
-    exports[key] = obj[key];
-  }
-};
+var verbose = sg.mkVerbose('sg');
 
-var lineNum = 0;
-var remainder = '';
-var ARGF = sg.ARGF = function(callback, fnDone_) {
-  var fnDone = fnDone_ || function() {};
-
-  var doOneLine = function(line) {
-    lineNum++;
-    callback(line, lineNum);
-  };
-
-  process.stdin.setEncoding('utf8');
-
-  process.stdin.on('data', function(chunk) {
-    remainder += chunk;
-    var lines = remainder.split('\n');
-    remainder = lines.pop();
-
-    _.each(lines, doOneLine);
-  });
-
-  process.stdin.on('end', function() {
-    var lines = remainder.split('\n');
-    _.each(lines, doOneLine);
-    fnDone();
-  });
-};
-
-var awk = sg.awk = function(callback, fnDone_) {
-  return ARGF(function(line, lineNum) {
-    return callback(line.split(' '), lineNum);
-  }, fnDone_);
+// Makes the attributes on a data object be the 'right' type (like '0' -> the number zero)
+sg.smartAttrs = function(obj) {
+  return _.reduce(obj, function(m, value, key) {
+    if (_.isString(value) && /^[0-9]+$/.exec(value)) {
+      return sg.kv(m, key, parseInt(value, 10));
+    }
+    return sg.kv(m, key, value);
+  }, {});
 };
 
 var TheARGV = function(params_) {
@@ -245,25 +183,26 @@ var TheARGV = function(params_) {
   var params = params_ || {};
 
   self.executable = process.argv[0];
-  self.script     = process.argv[1];
-  self.flags      = {};
-  self.args       = [];
-  self.args2      = [];
+  self.script = process.argv[1];
+  self.flags = {};
+  self.flagNames = [];
+  self.args = [];
 
-  self.setFlag = function(key, value) {
+  self.setFlag = function(key_, value) {
+    var key = key_.replace(/-/g, '_');
+
     self.flags[key] = value;
+    self.flagNames.push(key);
     if (self.flags.hasOwnProperty(key) || !self.hasOwnProperty(key)) {
       self[key] = value;
     }
-
-    // set the short version of the flag
     if (params.short && params.short[key]) {
-      self.setFlags(params.short[key], value);
+      self.setFlag(params.short[key], value);
     }
   };
 
   // Initialize -- scan the arguments
-  var curr, argset = 0;
+  var curr;
   for (var i = 2; i < process.argv.length; i++) {
     var next = i+1 < process.argv.length ? process.argv[i+1] : null;
     var m, m2;
@@ -271,57 +210,292 @@ var TheARGV = function(params_) {
     curr = process.argv[i];
 
     // --foo=bar, --foo=
-    if ((m = /--([a-zA-Z_0-9\-]+)=([^ ]+)/.exec(curr)) && m.length === 3) {
-      self.setFlag([m[1]], m[2]);
+    if ((m = /^--([a-zA-Z_0-9\-]+)=([^ ]+)$/.exec(curr)) && m.length === 3) {
+      self.setFlag(m[1], m[2]);
     }
     // --foo-
-    else if ((m = /--([^ ]+)-/.exec(curr))) {
-      self.setFlag([m[1]], false);
+    else if ((m = /^--([^ ]+)-$/.exec(curr))) {
+      self.setFlag(m[1], false);
     }
     // --foo= bar
-    else if ((m = /--([^ ]+)=/.exec(curr)) && next && (m2 = /^([^\-][^ ]*)/.exec(next))) {
-      self.setFlag([m[1]], m2[1]);
+    else if ((m = /^--([^ ]+)=$/.exec(curr)) && next && (m2 = /^([^\-][^ ]*)/.exec(next))) {
+      self.setFlag(m[1], m2[1]);
       i++;
     }
     // --foo
-    else if ((m = /--([^ ]+)/.exec(curr))) {
-      self.setFlag([m[1]], true);
+    else if ((m = /^--([^ ]+)$/.exec(curr))) {
+      self.setFlag(m[1], true);
     }
     // -f-
-    else if ((m = /-(.)-/.exec(curr))) {
-      self.setFlag([m[1]], true);
+    else if ((m = /^-(.)-$/.exec(curr))) {
+      self.setFlag(m[1], true);
     }
     // -f bar
-    else if ((m = /-(.)/.exec(curr)) && next && (m2 = /^([^\-][^ ]*)/.exec(next))) {
-      self.setFlag([m[1]], m2[1]);
+    else if ((m = /^-(.)$/.exec(curr)) && next && (m2 = /^([^\-][^ ]*)/.exec(next))) {
+      self.setFlag(m[1], m2[1]);
       i++;
     }
     // -f
-    else if ((m = /-(.)/.exec(curr))) {
-      self.setFlag([m[1]], true);
+    else if ((m = /^-(.)$/.exec(curr))) {
+      self.setFlag(m[1], true);
     }
     else if (curr === '--') {
-      argset = 1;
-    }
-    else if (curr === '---') {
-      argset = 2;
+      break;
     }
     else {
-      if (argset === 1) {
-        self.args.push(curr);
-      } else if (argset === 2) {
-        self.args2.push(curr);
-      }
+      self.args.push(curr);
     }
+  }
+
+  for (; i < process.argv.length; i++) {
+    curr = process.argv[i];
+    self.args.push(curr);
   }
 };
 
 var theARGV = null;
 var ARGV = sg.ARGV = function(params) {
+  if (params) {
+    return (theARGV = new TheARGV(params));
+  }
+
   return theARGV || (theARGV = new TheARGV(params));
 };
+theARGV = ARGV();
 
+var __each_ = function(coll, fn, callback) {
 
+  if (_.isArray(coll) && coll.length <= 0) {
+    return callback();
+  }
 
-exportify(sg);
+  var i = 0, end;
+  var indexes, values, errors, hasError = false;
+
+  if (_.isArray(coll)) {
+    indexes = _.range(coll.length);
+    values = [];
+    errors = [];
+  }
+  else {
+    indexes = _.keys(coll);
+    values = {};
+    errors = {};
+  }
+
+  if ((end = indexes.length) === 0) {
+    return callback(hasError ? errors : null, values);
+  }
+
+  var doOne = function() {
+    var item = coll[indexes[i]];
+    var nextI = i + 1;
+    var next = function(err, val) {
+      if (err) { hasError = true; }
+
+      errors[i] = err;
+      values[i] = val;
+
+      i = nextI;
+      if (i < end) {
+        return process.nextTick(function() {
+          doOne();
+        });
+      }
+
+      return callback(hasError ? errors : null, values);
+    };
+
+    return fn(item, next, indexes[i], coll);
+  };
+
+  return setImmediate(doOne);
+};
+
+sg.__each = function(a, b, c) {
+  // If the caller has a named function, like 'next', it is easier to call this
+  // function with that name first
+  if (_.isFunction(a)) { return __each_(b, c, a); }
+
+  // Normal
+  return __each_(a, b, c);
+};
+
+var __eachll = /*sg.__eachll =*/ function(coll, fn, callback) {
+  var finalFn = _.after(coll.length, function() {
+    callback();
+  });
+
+  for (var i = 0, l = coll.length; i < l; i++) {
+    fn(coll[i], finalFn, i);
+  }
+};
+
+var __eachll2 = sg.__eachll = function(list_ /*, max_, fn_, callback_*/ ) {
+
+  var args      = _.rest(arguments);
+  var callback  = args.pop();
+  var fn        = args.pop();
+  var max       = args.length > 0 ? args.shift() : 10000000;
+
+  if (_.isArray(list_)) {
+    var list = list_.slice();
+
+    if (list.length === 0) { return callback(); }
+
+    var outstanding = 0;
+    var launch = function(incr) {
+      outstanding += (incr || 0);
+
+      if (list.length > 0 && outstanding < max) {
+        outstanding++;
+        fn(list.shift(), function() {
+          process.nextTick(function() {
+            launch(-1);
+          });
+        }, list.length, list_);
+        //process.nextTick(launch);
+        launch();
+      }
+      else if (list.length === 0 && outstanding === 0) {
+        callback();
+      }
+    };
+    launch(1);
+    outstanding -= 1;
+    return;
+  }
+
+  /* otherwise */
+  return sg.__eachll(_.keys(list_), max, function(key, nextKey) {
+    fn(list_[key], nextKey, key, list_);
+  }, callback);
+};
+
+sg.__runll = function(/*fns, max, onDone*/) {
+
+  var args    = _.rest(arguments, 0);
+  var onDone  = args.pop();
+
+  // The dispatch function
+  args.push(function(fn /*, next, index, coll*/) {
+    // fn(next, index, coll)
+    return fn.apply(this, _.rest(arguments));
+  });
+
+  // The final function
+  args.push(onDone);
+
+  return __eachll2.apply(this, args);
+};
+
+sg.__run = function(a, b) {
+  var fns, callback;
+
+  if (_.isArray(a)) {
+    fns = a; callback = b;
+  } else {
+    fns = b; callback = a;
+  }
+
+  return sg.__each(
+    fns,
+    function(fn, next, index, coll) {
+      return fn(next, index, coll);
+    },
+    callback || function() {}
+  );
+};
+
+sg.parseUrl = function(req, parseQuery) {
+  return req && req.url && urlLib.parse(req.url, parseQuery);
+};
+
+sg.getBody = function(req, callback) {
+
+  var onEnd = function() {
+
+    req.bodyJson = req.bodyJson || safeJSONParse(req.chunks.join(''));
+    req.bodyJson = smartAttrs(req.bodyJson);
+
+    if (req.bodyJson.meta) {
+      req.bodyJson.meta = smartAttrs(req.bodyJson.meta);
+    }
+
+    return callback(null, req.bodyJson);
+  };
+
+  req.on('end', onEnd);
+
+  // Only collect the data once
+  if (req.chunks) {
+    return;
+  }
+
+  /* otherwise */
+  req.chunks = [];
+  req.on('data', function(chunk) {
+    req.chunks.push(chunk);
+  });
+};
+
+/**
+ *  Get sub-parts of the pathname.  Generally to get the next (few)
+ *  route parts.
+ *
+ *  For: url.pathname = '/a/b/c/d/e/f/g'
+ *
+ *  httpRoute(url)           -> 'a'
+ *  httpRoute(url, 1)        -> 'b'
+ *  httpRoute(url, 1, 2)     -> 'b/c'
+ *  httpRoute(url, 1, 3)     -> 'b/d'
+ *  httpRoute(url, 1, null)  -> 'b/c/d/e/f/g'
+ *
+ */
+sg.httpRoute = function(url) {
+  if (_.isObject(url) && !url.hasOwnProperty('pathname')) {
+    var req = url;
+    return httpRoute.apply(this, [parseUrl(req)].concat(_.rest(arguments)));
+  }
+
+  var parts   = _.rest(url.pathname.split('/'));
+  var fields  = _.flatten(_.rest(arguments));
+
+  if (fields.length < 1) {
+    fields.push(0);
+  } else if (fields.length === 2 && fields[1] === null) {
+    fields = _.range(fields[0], parts.length+1);
+  }
+
+  return _.chain(fields).
+    map(function(fNum) { return parts[fNum]; }).
+    compact().
+    value().join('/');
+};
+
+/**
+ *  Does the route match?
+ */
+sg.httpRouteMatches = function(a /*, [fields], route*/) {
+  var args   = _.rest(arguments, 0);
+  var route  = args.pop();
+
+  if (route.toLowerCase() !== httpRoute.apply(this, args).toLowerCase()) {
+    return false;
+  }
+
+  if (_.isObject(a) && a.hasOwnProperty('url')) {
+    return parseUrl(a, true);
+  }
+
+  return true;
+};
+
+_.each(sg, function(fn, name) {
+  exports[name] = sg[name];
+});
+
+exports.sgmore = function() { return require('./sgmore'); };
+exports.sgext  = function() { return require('./sgext'); };
+
 

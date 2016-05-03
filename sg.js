@@ -57,6 +57,31 @@ sg.dashifyKey = function(key) {
   return key.replace(/\./g, '-');
 };
 
+sg.cleanKey = function(key) {
+  return key.replace(/[^a-zA-Z0-9_]/g, '_');
+};
+
+sg.inc = function(obj, key, value) {
+  if (!key) { return; }
+
+  obj[key] = (obj[key]  || 0) + (value || 1);
+
+  return obj[key];
+};
+
+sg.incKeyed = function(obj, name, value) {
+  if (!name) { return; }
+
+  var key = sg.cleanKey(name);
+
+  obj[key]        = obj[key] || {};
+  obj[key].name   = name;
+
+  obj[key].count  = (obj[key].count  || 0) + (value || 1);
+
+  return obj[key];
+};
+
 var safeJSONParse = sg.safeJSONParse = function(str, def) {
   if (str !== '') {
     try {
@@ -121,6 +146,13 @@ var reportError = sg.reportError = function(error) {
 };
 
 sg.runTest = function(testFn) {
+};
+
+sg.lines = function(lines) {
+  if (_.isArray(lines)) { return sg.lines.apply(sg, lines); }
+
+  /* otherwise */
+  return _.toArray(arguments).join('\n');
 };
 
 var inspect = sg.inspect = function(x) {
@@ -199,6 +231,24 @@ var TheARGV = function(params_) {
     if (params.short && params.short[key]) {
       self.setFlag(params.short[key], value);
     }
+  };
+
+  self.getParams = function(options) {
+    var me = JSON.parse(JSON.stringify(self));
+    var result = {args: sg.extract(me, 'args') || []};
+
+    result.args = _.rest(result.args, options.numArgsToSkip || 0);
+
+    delete me.executable;
+    delete me.script;
+    delete me.flags;
+    delete me.flagNames;
+
+    if (options.skipArgs) {
+      delete result.args;
+    }
+
+    return _.extend(result, me);
   };
 
   // Initialize -- scan the arguments
@@ -405,6 +455,18 @@ sg.__run = function(a, b) {
     },
     callback || function() {}
   );
+};
+
+/**
+ *  Calls fn until it wants to quit
+ */
+sg.until = function(fn, callback) {
+  var count = -1, start = _.now();
+  var once = function() {
+    count += 1;
+    return fn(once, callback, count, _.now() - start);
+  };
+  once();
 };
 
 sg.parseUrl = function(req, parseQuery) {

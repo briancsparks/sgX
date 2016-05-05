@@ -82,6 +82,20 @@ sg.incKeyed = function(obj, name, value) {
   return obj[key];
 };
 
+sg.deref = function(x, keys_) {
+  var keys = keys_.split('.'), key;
+  var result = x;
+
+  while (keys.length > 0) {
+    key = keys.shift();
+    if (!(result = result[key])) {
+      return /* undefined */;
+    }
+  }
+
+  return result;
+}
+
 var safeJSONParse = sg.safeJSONParse = function(str, def) {
   if (str !== '') {
     try {
@@ -92,6 +106,10 @@ var safeJSONParse = sg.safeJSONParse = function(str, def) {
   }
 
   return def || {};
+};
+
+sg.deepCopy = function(x) {
+  return sg.safeJSONParse(JSON.stringify(x));
 };
 
 sg.startsWith = function(longStr, start) {
@@ -553,11 +571,15 @@ sg.httpRouteMatches = function(a /*, [fields], route*/) {
   return true;
 };
 
+sg = require('./sgext').load(sg, _);
+sg = require('./sgmore').load(sg, _);
+sg = require('./sgaws').load(sg, _);
+
 _.each(sg, function(fn, name) {
   exports[name] = sg[name];
 });
 
-exports.sgmore = function() { return require('./sgmore'); };
-exports.sgext  = function() { return require('./sgext'); };
+//exports.sgmore = function() { return require('./sgmore'); };
+//exports.sgext  = function() { return require('./sgext'); };
 
 

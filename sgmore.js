@@ -8,6 +8,7 @@
 exports.load = function(sg, _) {
 
   var path          = require('path');
+  var spawn         = require('child_process').spawn;
 
   var fs            = sg.extlibs.fs           = require('fs-extra');
   var glob          = sg.extlibs.glob         = require('glob');
@@ -343,6 +344,41 @@ exports.load = function(sg, _) {
         return finalCallback();
       });
     });
+  };
+
+  sg.spawnEz = function(command, args, options) {
+    var stderr    = sg.extract(options, 'stderr');
+    var stdout    = sg.extract(options, 'stdout');
+    var close     = sg.extract(options, 'close');
+    var newline   = sg.extract(options, 'newline');
+
+    var proc, errRemainder = '', outRemainder = '', streamOptions = {};
+
+    if (_.keys(options).length > 0) {
+      proc = spawn(command, args, options);
+    } else {
+      proc = spawn(command, args);
+    }
+
+    if (newline) {
+      streamOptions.newline = newline;
+    }
+
+    if (stderr) {
+      proc.stderr.on('data', function(chunk) {
+        errRemainder = sg.str2lines(errRemainder, chunk, streamOptions, stderr);
+      });
+    }
+
+    if (stdout) {
+      proc.stdout.on('data', function(chunk) {
+        outRemainder = sg.str2lines(outRemainder, chunk, streamOptions, stdout);
+      });
+    }
+
+    if (close) {
+      proc.on('close', close);
+    }
   };
 
   return sg;

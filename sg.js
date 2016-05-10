@@ -331,6 +331,26 @@ var ARGV = sg.ARGV = function(params) {
 };
 theARGV = ARGV();
 
+/**
+ *  Stream to lines.
+ */
+sg.str2lines = function(remainder_, chunk /*, options, fn */) {
+  var args        = _.rest(arguments, 2);
+  var fn          = args.pop();
+  var options     = args.pop() || {};
+  var str         = remainder_ + chunk;
+  var lines       = str.split('\n');
+  var remainder   = lines.pop();
+
+  _.each(lines, function(line_, index) {
+    var line = line_;
+    if (options.newline) { line += '\n' }
+    return fn(line, index);
+  });
+
+  return remainder;
+};
+
 var __each_ = function(coll, fn, callback) {
 
   if (_.isArray(coll) && coll.length <= 0) {
@@ -440,6 +460,34 @@ var __eachll2 = sg.__eachll = function(list_ /*, max_, fn_, callback_*/ ) {
   }, callback);
 };
 
+/**
+ *  Invoke a function for each item in a second-level array.
+ *
+ *  Here is a snippet for enumerating the instances in the data that is 
+ *  returned from describeInstances:
+ *
+ *    _.each(reservations.Reservations, function(reservation) {
+ *      _.each(reservation.Instances, function(instance) {
+ *          ...
+ *      });
+ *    });
+ *
+ *  Using this function, you could do:
+ *
+ *    sg.eachFrom(reservations.Reservations, "Instances", function(instance) {
+ *        ...
+ *    });
+ *
+ */
+sg.eachFrom = function(arr, itemName, fn) {
+  var count = 0;
+  _.each(arr, function(item) {
+    _.each(sg.deref(item, itemName), fn);
+  });
+
+  return count;
+};
+
 sg.__runll = function(/*fns, max, onDone*/) {
 
   var args    = _.rest(arguments, 0);
@@ -478,13 +526,38 @@ sg.__run = function(a, b) {
 /**
  *  Calls fn until it wants to quit
  */
-sg.until = function(fn, callback) {
+sg.until = function(/* [options,] fn, callback */) {
+  var args      = _.toArray(arguments);
+  var callback  = args.pop();
+  var fn        = args.pop();
+  var options   = args.shift() || {};
+
+  options.interval  = options.interval || options.delay;
+
   var count = -1, start = _.now();
+
+  var again;
   var once = function() {
     count += 1;
-    return fn(once, callback, count, _.now() - start);
+    return fn(again, callback, count, _.now() - start);
   };
-  once();
+
+  again = function() {
+    var delay = options.interval;
+
+    if (arguments.length > 0) {
+      delay = arguments[0];
+    }
+
+    if (delay) {
+      return setTimeout(once, delay);
+    }
+
+    /* otherwise */
+    return once();
+  };
+
+  return once();
 };
 
 sg.parseUrl = function(req, parseQuery) {
@@ -492,6 +565,11 @@ sg.parseUrl = function(req, parseQuery) {
 };
 
 sg.getBody = function(req, callback) {
+
+  // req.end might have already been called
+  if (req.bodyJson) {
+    return callback(null, req.bodyJson);
+  }
 
   var onEnd = function() {
 

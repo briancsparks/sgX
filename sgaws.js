@@ -201,7 +201,7 @@ exports.load = function(sg, _, options_) {
       var saOptions         = saOptions_                || {};
       var activityPrefix    = saOptions.activityPrefix  || 'activityId-';
 
-      scheduleActivityParams.decisions.push({
+      var activity = {
         decisionType  : 'ScheduleActivityTask',
 
         scheduleActivityTaskDecisionAttributes: {
@@ -212,13 +212,14 @@ exports.load = function(sg, _, options_) {
           },
           input         : JSON.stringify(input),
 
-          scheduleToCloseTimeout  : '' + (saOptions.scheduleToCloseTimeout || 600),
-          scheduleToStartTimeout  : '' + (saOptions.scheduleToStartTimeout || 600),
-          startToCloseTimeout     : '' + (saOptions.startToCloseTimeout    || 600),
 
           taskList      : { name: taskName /* 'yoshi' */ }
         },
-      });
+      };
+
+      _.extend(activity, _.pick(saOptions, 'scheduleToCloseTimeout', 'scheduleToStartTimeout', 'startToCloseTimeout'));
+
+      scheduleActivityParams.decisions.push(activity);
     };
 
     self.scheduleFinish = function(scheduleActivityParams, result) {
@@ -248,12 +249,12 @@ exports.load = function(sg, _, options_) {
     };
 
     self.taskComplete = function(scheduleActivityParams, callback) {
-      if (scheduleActivityParams.decisions.length > 0) {
+//      if (scheduleActivityParams.decisions.length > 0) {
         return swf.respondDecisionTaskCompleted(scheduleActivityParams, function(err, result) {
           if (err) { console.error(err); }
           return callback(err, result);
         });
-      }
+//      }
     };
 
     self.activityComplete = function(token, result, callback) {

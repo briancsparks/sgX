@@ -13,6 +13,108 @@ exports.load = function(sg, _) {
   var fs            = sg.extlibs.fs           = require('fs-extra');
   var glob          = sg.extlibs.glob         = require('glob');
 
+  var dogStats;
+
+  var dogStatsClosure = function() {
+    var server = process.env.SG_STATSD_SERVER || process.env.STATSD_SERVER || process.env.DOG_STATSD_SERVER || 'localhost';
+    try {
+      var dogStatsD = require('dogstatsd').StatsD;
+      dogStats      = new dogStatsD(server, 8125);
+    } catch(e) {}
+  };
+  dogStatsClosure();
+
+  sg.StatsD = function() {
+    var self = this;
+
+    self.increment = function(name, value, tags) {
+      if (!dogStats) { return; }
+      var args = parseParams.apply(self, arguments);
+
+      if ('value' in args)  { dogStats.incrementBy(args.name, args.value, dogTags(args.tags)); }
+      else                  { dogStats.increment(args.name, dogTags(args.tags)); }
+    };
+
+    self.decrement = function(name, value, tags) {
+      if (!dogStats) { return; }
+      var args = parseParams.apply(self, arguments);
+
+      if ('value' in args)  { dogStats.decrementBy(args.name, args.value, dogTags(args.tags)); }
+      else                  { dogStats.decrement(args.name, dogTags(args.tags)); }
+    };
+
+    self.gauge = function(name, value, tags) {
+      if (!dogStats) { return; }
+      var args = parseParams.apply(self, arguments);
+
+      if ('value' in args)  { dogStats.gauge(args.name, args.value, dogTags(args.tags)); }
+      else                  { dogStats.gauge(args.name, dogTags(args.tags)); }
+    };
+
+    self.histogram = function(name, value, tags) {
+      if (!dogStats) { return; }
+      var args = parseParams.apply(self, arguments);
+
+      dogStats.histogram(args.name, args.value, dogTags(args.tags));
+    };
+
+    self.timing = function(name, value, tags) {
+      if (!dogStats) { return; }
+      var args = parseParams.apply(self, arguments);
+
+      dogStats.timing(args.name, args.value, dogTags(args.tags));
+    };
+
+    self.set = function(name, value, tags) {
+      if (!dogStats) { return; }
+      var args = parseParams.apply(self, arguments);
+
+      if ('value' in args)  { dogStats.set(args.name, args.value, dogTags(args.tags)); }
+      else                  { dogStats.set(args.name, dogTags(args.tags)); }
+    };
+
+    var parseParams = function(name /*, value, tags*/) {
+      var args  = _.rest(arguments);
+      var tags  = _.isArray(_.last(args)) ? args.pop() : null;
+      var value = args.shift();
+
+      var result = { name : name };
+      if (value) { result.value = value; }
+      if (tags)  { result.tags  = tags; }
+
+      return result;
+    };
+
+    var dogTags = function(userTags) {
+      var result = [];
+      if (userTags) {
+        result = result.concat(userTags);
+      }
+
+      _.each(userTags, function(value, key) {
+        if (value === true) {
+          result.push(key);
+        } else {
+          result.push(key + ':' + value);
+        }
+      });
+
+      //_.each(initTags, function(value, key) {
+      //  result.push(key + ':' + value);
+      //});
+
+      //_.each(keyValueTags, function(value, key) {
+      //  result.push(key + ':' + value);
+      //});
+
+      //_.each(tags, function(value, key) {
+      //  result.push(key);
+      //});
+
+      return result;
+    };
+  };
+
 
   var stringForHttpCode = function(code) {
     // First, specific codes

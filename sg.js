@@ -94,7 +94,7 @@ sg.deref = function(x, keys_) {
   }
 
   return result;
-}
+};
 
 var safeJSONParse = sg.safeJSONParse = function(str, def) {
   if (str !== '') {
@@ -142,6 +142,21 @@ sg.startOfDay = function(d) {
   day.setHours(0);
 
   return day;
+};
+
+sg.pad = function(val, len, sep_) {
+  var sep = sep_;
+  if (!sep) {
+    if (_.isNumber(val))  { sep = '0'; }
+    else                  { sep = ' '; }
+  }
+
+  var str = '' + val;
+  while (str.length < len) {
+    str = sep + str;
+  }
+
+  return str;
 };
 
 /**

@@ -18,6 +18,19 @@ exports.load = function(sg, _, options_) {
   var swf, lambda, cf, ec2;
 
   var awsCredentialsHaveBeenSet = false;
+
+  sg.awsTag = function(Tags, key) {
+    var result;
+
+    _.each(Tags, function(tag) {
+      if (tag.Key === key) {
+        result = tag.Value;
+      }
+    });
+
+    return result;
+  };
+
   sg.setAwsCredentials = function(options_) {
     if (awsCredentialsHaveBeenSet) { return; }
 
@@ -260,7 +273,7 @@ exports.load = function(sg, _, options_) {
     self.activityComplete = function(token, result, callback) {
       var activityCompleteParams = {
         taskToken : token,
-        result    : JSON.stringify(result)
+        result    : JSON.stringify(_.extend({awsTaskToken:token}, result))
       };
 
       return swf.respondActivityTaskCompleted(activityCompleteParams, function(err, result) {
@@ -278,6 +291,18 @@ exports.load = function(sg, _, options_) {
       return swf.recordActivityTaskHeartbeat(params, function(err, result) {
         if (err) { console.error(err); }
         return callback(err, result);
+      });
+    };
+
+    self.heartbeatAgain = function(token, details, time, again) {
+      var params = {
+        taskToken : token,
+        details   : details
+      };
+
+      return swf.recordActivityTaskHeartbeat(params, function(err, result) {
+        if (err) { console.error(err); }
+        return again(time);
       });
     };
 

@@ -29,6 +29,7 @@
     "glob": "^6.0.4",
     "mkdirp": "^0.5.1",
     "moment": "^2.11.1",
+    "mongodb": "^2.1.18",
     "shelljs": "^0.5.3",
     "superagent": "^1.7.1",
     "underscore": "^1.8.3"

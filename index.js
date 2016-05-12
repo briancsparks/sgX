@@ -26,6 +26,8 @@ if (cmd === 'run' || cmd === 'sls') {
       console.log(result);
     });
   }
+} else if (cmd === 'mongo') {
+  return require('./mongo-cli').run(ARGV);
 }
 
 console.error('Error: unknown');

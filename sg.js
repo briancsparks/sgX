@@ -43,6 +43,16 @@ sg.kv = function(o, k, v) {
   return o;
 };
 
+sg.trueOrFalse = function(value_) {
+  var value = value_;
+  if (value === true || value === false)  { return value; }
+  if (value === 'true')                   { return true; }
+  if (value === 'false')                  { return false; }
+
+  if (_.isString(value)) { value = +value; }    // Convert to number
+  return !!value;
+};
+
 sg.reduce = function(collection, initial, fn) {
   return _.reduce(collection, fn, initial);
 };
@@ -51,6 +61,17 @@ sg.extract = function(collection, name) {
   var value = collection[name];
   delete collection[name];
   return value;
+};
+
+sg.extracts = function(collection /*, names... */) {
+  var names  = _.rest(arguments);
+  var result = {};
+
+  _.each(names, function(name) {
+    result[name] = sg.extract(collection, name);
+  });
+
+  return result;
 };
 
 sg.dashifyKey = function(key) {
@@ -359,11 +380,70 @@ sg.str2lines = function(remainder_, chunk /*, options, fn */) {
 
   _.each(lines, function(line_, index) {
     var line = line_;
-    if (options.newline) { line += '\n' }
+    if (options.newline) { line += '\n'; }
     return fn(line, index);
   });
 
   return remainder;
+};
+
+sg.dieTrying = function(onError, code_, callback) {
+
+  // 'callback' is the function that should be called on success
+
+  // This function is being called as 'callback' in some function
+  return function(err /*, ...*/) {
+    if (!err) { return callback.apply(this, arguments); }
+
+    /* otherwise */
+    var errMsg = err;
+    if (!_.isString(err)) {
+      errMsg = sg.inspect(err);
+    }
+
+    var exitCode = onError.apply(this, arguments);
+    process.exit(exitCode || code_ || 1);
+  };
+};
+
+sg.mkDieTrying = function(usage_) {
+  var usage = usage_;
+  if (!_.isArray(usage)) {
+    usage = usage.split('\n');
+  }
+
+  return function(callback) {
+    var onError = function(err) {
+
+      var errMsg = [];
+      var errInfo = err;
+      if (!_.isString(err)) {
+        errInfo = sg.inspect(err);
+      }
+
+      errMsg.push("Error: " + errInfo);
+      errMsg.push("");
+
+      process.stderr.write(sg.lines(errMsg.concat(usage)));
+
+      return 9;
+    };
+
+    return sg.dieTrying(onError, null, callback);
+  };
+};
+
+sg.death = function(callback) {
+  return callback(true);
+};
+
+sg.mkDie = function(dieTryingFn) {
+
+  return function() {
+    return sg.death(dieTryingFn(function(err) {
+      // This inner function should not be called, as the dieTryingFn should intercept it
+    }));
+  };
 };
 
 var __each_ = function(coll, fn, callback) {

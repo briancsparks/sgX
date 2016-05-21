@@ -78,10 +78,16 @@ sg.dashifyKey = function(key) {
   return key.replace(/\./g, '-');
 };
 
+/**
+ *  Makes the key a valid identifier (letter, digit, or underscore).
+ */
 sg.cleanKey = function(key) {
   return key.replace(/[^a-zA-Z0-9_]/g, '_');
 };
 
+/**
+ *  Increments a key of an object, starts at zero if not present.
+ */
 sg.inc = function(obj, key, value) {
   if (!key) { return; }
 
@@ -90,6 +96,25 @@ sg.inc = function(obj, key, value) {
   return obj[key];
 };
 
+/**
+ *  Increments a key of a sub-object, starts at zero if not present.
+ */
+sg.inc2 = function(obj, key, subKey, value) {
+  if (!key || !subKey) { return; }
+
+  obj[key] = obj[key] || {};
+  return sg.inc(obj[key], subKey, value);
+};
+
+/**
+ *  Increments the 'count' of the 'named' attribute, and cleans the name (makes it an identifier).
+ *
+ *    obj = {}
+ *
+ *    incKeyed(obj, 'foo bar');
+ *
+ *    obj = {foo_bar:{name:'foo bar', count:1}}
+ */
 sg.incKeyed = function(obj, name, value) {
   if (!name) { return; }
 

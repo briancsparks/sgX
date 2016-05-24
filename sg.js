@@ -147,11 +147,11 @@ var safeJSONParse = sg.safeJSONParse = function(str, def) {
     try {
       return JSON.parse(str);
     } catch(err) {
-      verbose(2, "Error parsing JSON", str);
+      verbose(4, "Error parsing JSON", str, err);
     }
   }
 
-  return def || {};
+  return arguments.length > 1 ? def : {};
 };
 
 sg.deepCopy = function(x) {
@@ -288,6 +288,25 @@ sg.smartAttrs = function(obj) {
   }, {});
 };
 
+sg.toError = function(e) {
+  if (e instanceof Error)     { return e; }
+  if (_.isString(e))          { return new Error(e); }
+  if (_.isArray(e))           { return new Error(JSON.stringify(e)); }
+
+  if (_.isObject(e)) {
+    if (sg.numKeys(e) > 1)    { return new Error(JSON.stringify(e)); }
+    if (_.isString(e.error))  { return new Error(e.error); }
+    if (_.isString(e.Error))  { return new Error(e.Error); }
+    if (_.isString(e.err))    { return new Error(e.err); }
+    if (_.isString(e.Err))    { return new Error(e.Err); }
+  }
+
+  if (e === null)             { return e; }
+  if (e === undefined)        { return e; }
+
+  return new Error('' + e);
+};
+
 var TheARGV = function(params_) {
   var self = this;
 
@@ -328,6 +347,10 @@ var TheARGV = function(params_) {
     }
 
     return _.extend(result, me);
+  };
+
+  self.getJson = function(options) {
+    return JSON.stringify(self.getParams(options));
   };
 
   // Initialize -- scan the arguments

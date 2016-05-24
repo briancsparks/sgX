@@ -11,6 +11,7 @@ exports.load = function(sg, _, options_) {
   var fs              = sg.extlibs.fs;
   var path            = require('path');
   var deref           = sg.deref;
+  var request         = sg.extlibs.superagent;
 
   var options         = options_        || {};
   var awsAcct         = options.awsAcct || process.env.SG_AWS_ACCT;
@@ -18,6 +19,28 @@ exports.load = function(sg, _, options_) {
   var swf, lambda, cf, ec2;
 
   var awsCredentialsHaveBeenSet = false;
+
+  //==================================================================================================================================
+  //
+  //                                AWS -- Various Setup and Helpers
+  //
+  //==================================================================================================================================
+
+  /**
+   *  AWS is overly particular about what you sent the callback. Usually, you can just pass along whatever
+   *  you got, but AWS wants ONLY Error() objects in the err parameter, and if you send something in err,
+   *  you better not send anything in the other params.
+   */
+  sg.awsback = function(callback, err /*, ...*/) {
+
+    if (err) {
+      // Yikes, an error.  Must only send the error along, and we should go through great lengths to put it into a form that AWS likes.
+      return callback(sg.toError(err));
+    }
+
+    // No error -- callback normal
+    return callback.apply(this, _.rest(arguments));
+  };
 
   sg.awsTag = function(Tags, key) {
     var result;
@@ -57,16 +80,36 @@ exports.load = function(sg, _, options_) {
     }
   };
 
-  sg.mkSwf = function(options_) {
-    if (swf) { return swf; }
+  //==================================================================================================================================
+  //
+  //                                AWS -- Lambda
+  //
+  //==================================================================================================================================
 
-    var options = options_ || {};
-    sg.setAwsCredentials(options);
+  /**
+   *  Invoke the lambda function mod[fName](event, context, callback)
+   */
+  sg.lambdaLocal = function(mod, fName, event_, context, callback) {
 
-    options.region = options.region || 'us-east-1';
-    return swf = new aws.SWF(_.pick(options, 'region'));
+    var event = event_ || {};
+    var fn    = mod[fName];
+
+    if (!_.isFunction(fn)) { return callback({Error:"NotAFunction"}); }
+
+    if (_.isString(event)) {
+      event = sg.safeJSONParse(event);
+    }
+
+    if (_.isFunction(event.getParams)) {
+      event = event.getParams({skipArgs:true});
+    }
+
+    return fn(event, context, callback);
   };
 
+  /**
+   *  Make an AWS Lambda object.
+   */
   sg.mkLambda = function(options_) {
     if (lambda) { return lambda; }
 
@@ -77,31 +120,39 @@ exports.load = function(sg, _, options_) {
     return lambda = new aws.Lambda(_.pick(options, 'region'));
   };
 
-  sg.mkCloudFormation = function(options_) {
-    if (cf) { return cf; }
-
-    var options = options_ || {};
-    sg.setAwsCredentials(options);
-
-    options.region = options.region || 'us-east-1';
-    return cf = new aws.CloudFormation(_.pick(options, 'region'));
-  };
-
-  sg.mkEc2 = function(options_) {
-    if (ec2) { return ec2; }
-
-    var options = options_ || {};
-    sg.setAwsCredentials(options);
-
-    options.region = options.region || 'us-east-1';
-    return ec2 = new aws.EC2(_.pick(options, 'region'));
-  };
-
+  /**
+   * Make an SG wrapper for AWS Lambda -- SgLambda()
+   */
   sg.SgLambda = function(options_) {
     var self    = this;
     var options = options_ || {};
 
     self.lambda = sg.mkLambda(options);
+
+    /**
+     *  Invoke a lambda function
+     */
+    self.invoke = function(fName, payload, options_, callback) {
+      var options = options_ || {};
+
+      return dynamicData(function(err, instance) {
+        if (err) { console.error(err); return callback(err); }
+
+        options.region    = instance.region     || 'us-east-1';
+        options.accountId = instance.accountId  || '084075158741';
+
+        var lambdaParams = {
+          //FunctionName      : ['arn:aws:lambda:', instance.region, instance.accountId, 'function:yoshi-launch'].join(':'),
+          FunctionName      : ['arn:aws:lambda', options.region, options.accountId, 'function', fName].join(':'),
+          InvocationType    : 'RequestResponse',
+          Payload           : JSON.stringify(payload)
+        };
+
+        return lambda.invoke(lambdaParams, function(err, response) {
+          return callback(err, response);
+        });
+      });
+    };
 
     self.getPayload = function(err, response, callback) {
 
@@ -121,6 +172,32 @@ exports.load = function(sg, _, options_) {
     };
   };
 
+  //==================================================================================================================================
+  //
+  //                                AWS -- Simple Workflow Framework
+  //
+  //==================================================================================================================================
+
+  /**
+   *  Make an AWS SWF object.
+   */
+  sg.mkSwf = function(options_) {
+    if (swf) { return swf; }
+
+    var options = options_ || {};
+    sg.setAwsCredentials(options);
+
+    options.region = options.region || 'us-east-1';
+    return swf = new aws.SWF(_.pick(options, 'region'));
+  };
+
+  /**
+   *  sg's JavaScript-ification of AWS's SWF library.
+   *
+   *  AWS is very Java-style-centric, but SWF goes over-overboard.  SgSwfWorkflow is a very
+   *  JavaScript wrapper.
+   *
+   */
   sg.SgSwfWorkflow = function(domain, workflowName, options_) {
     var self    = this;
 
@@ -315,7 +392,10 @@ exports.load = function(sg, _, options_) {
         };
 
         if (_.isString(p.reason)) {
-          p.reason = sg.safeJSONParse(p.reason, p.reason);
+          try {
+            p.reason = JSON.parse(str);
+          } catch(err) {}
+//          p.reason = sg.safeJSONParse(p.reason, p.reason);
         }
 
         console.error('Error: ', p);
@@ -396,6 +476,44 @@ exports.load = function(sg, _, options_) {
       return result;
     }
   };
+
+  //==================================================================================================================================
+  //
+  //                                AWS -- Cloud Formation
+  //
+  //==================================================================================================================================
+
+  sg.mkCloudFormation = function(options_) {
+    if (cf) { return cf; }
+
+    var options = options_ || {};
+    sg.setAwsCredentials(options);
+
+    options.region = options.region || 'us-east-1';
+    return cf = new aws.CloudFormation(_.pick(options, 'region'));
+  };
+
+  //==================================================================================================================================
+  //
+  //                                AWS -- EC2
+  //
+  //==================================================================================================================================
+
+  sg.mkEc2 = function(options_) {
+    if (ec2) { return ec2; }
+
+    var options = options_ || {};
+    sg.setAwsCredentials(options);
+
+    options.region = options.region || 'us-east-1';
+    return ec2 = new aws.EC2(_.pick(options, 'region'));
+  };
+
+  function dynamicData(callback) {
+    return request.get('http://169.254.169.254/latest/dynamic/instance-identity/document') .end(function(err, result) {
+      return callback(err, result);
+    });
+  }
 
 
   return sg;

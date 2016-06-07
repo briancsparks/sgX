@@ -107,6 +107,20 @@ exports.load = function(sg, _, options_) {
     return fn(event, context, callback);
   };
 
+  sg.lambdaCC = function(args, callIt) {
+    var callback = args[2];
+    var context  = args[1];
+    var event_   = args[0];
+    var event    = event_ || {};
+
+    // Normalize the event
+    if (_.isString(event_)) {
+      event = sg.safeJSONParse(event_, {item:event_});
+    }
+
+    return callIt(event, context, callback);
+  };
+
   /**
    *  Make an AWS Lambda object.
    */
@@ -350,7 +364,8 @@ exports.load = function(sg, _, options_) {
     self.activityComplete = function(token, result, callback) {
       var activityCompleteParams = {
         taskToken : token,
-        result    : JSON.stringify(_.extend({awsTaskToken:token}, result))
+        //result    : JSON.stringify(_.extend({awsTaskToken:token}, result))
+        result    : JSON.stringify(result)
       };
 
       return swf.respondActivityTaskCompleted(activityCompleteParams, function(err, result) {
@@ -366,7 +381,7 @@ exports.load = function(sg, _, options_) {
       };
 
       return swf.recordActivityTaskHeartbeat(params, function(err, result) {
-        if (err) { console.error(err); }
+        if (err) { console.error('heartbeat', err); }
         return callback(err, result);
       });
     };
@@ -378,7 +393,7 @@ exports.load = function(sg, _, options_) {
       };
 
       return swf.recordActivityTaskHeartbeat(params, function(err, result) {
-        if (err) { console.error(err); }
+        if (err) { console.error('heartbeatAgain', err); }
         return again(time);
       });
     };

@@ -294,7 +294,6 @@ sg.toError = function(e) {
   if (_.isArray(e))           { return new Error(JSON.stringify(e)); }
 
   if (_.isObject(e)) {
-    if (sg.numKeys(e) > 1)    { return new Error(JSON.stringify(e)); }
     if (_.isString(e.error))  { return new Error(e.error); }
     if (_.isString(e.Error))  { return new Error(e.Error); }
     if (_.isString(e.err))    { return new Error(e.err); }
@@ -790,6 +789,13 @@ sg.httpRouteMatches = function(a /*, [fields], route*/) {
   }
 
   return true;
+};
+
+var __mdb;
+sg.mongo = function() {
+  if (!__mdb) { __mdb = require('./dbex'); }
+
+  return __mdb;
 };
 
 sg = require('./sgext').load(sg, _);

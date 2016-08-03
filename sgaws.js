@@ -10,8 +10,11 @@ exports.load = function(sg, _, options_) {
   var aws             = sg.extlibs.aws      = require('aws-sdk');
   var fs              = sg.extlibs.fs;
   var path            = require('path');
+  var util            = require('util');
+  var chalk           = require('chalk');
   var deref           = sg.deref;
   var request         = sg.extlibs.superagent;
+  var format          = util.format;
 
   var options         = options_        || {};
   var awsAcct         = options.awsAcct || process.env.SG_AWS_ACCT;
@@ -113,9 +116,14 @@ exports.load = function(sg, _, options_) {
     var event_   = args[0];
     var event    = event_ || {};
 
-    // Normalize the event
+    // Normalize the event -- Is is JSON?
     if (_.isString(event_)) {
       event = sg.safeJSONParse(event_, {item:event_});
+    }
+
+    // Normalize the event -- is it an ARGV object?
+    if (_.isFunction(event.getParams)) {
+      event = event.getParams({skipArgs:true});
     }
 
     return callIt(event, context, callback);
@@ -229,8 +237,8 @@ exports.load = function(sg, _, options_) {
         version               : workflowVersion,
         defaultChildPolicy    : 'REQUEST_CANCEL',
 
-        defaultTaskStartToCloseTimeout        : '' + 600,        // 10 minutes
-        defaultExecutionStartToCloseTimeout   : '' + 3600        // 1 hour
+        defaultTaskStartToCloseTimeout        : '' + 1200,       // 20 minutes
+        defaultExecutionStartToCloseTimeout   : '' + 3600 * 4    // 4 hour
       });
 
       return self.swf.registerWorkflowType(workflowParams, function(err, result) {
@@ -244,10 +252,10 @@ exports.load = function(sg, _, options_) {
         domain      : domain,
         version     : workflowVersion,
 
-        defaultTaskHeartbeatTimeout       : '' + 60,
+        defaultTaskHeartbeatTimeout       : '' + 300,         // 5 minutes
         defaultTaskScheduleToStartTimeout : '' + 600,
         defaultTaskScheduleToCloseTimeout : '' + 600,
-        defaultTaskStartToCloseTimeout    : '' + 600,        // 10 minutes
+        defaultTaskStartToCloseTimeout    : '' + 600,         // 10 minutes
       });
 
       return swf.registerActivityType(createVpcActivityParams, function(err, result_) {
@@ -278,8 +286,29 @@ exports.load = function(sg, _, options_) {
         domain    : domain,
       });
 
-      return swf.pollForDecisionTask(getDecisionTaskParams, function(err, result) {
-        return callback(err, result);
+      //getDecisionTaskParams.maximumPageSize = 3;
+
+      var result;
+      return sg.until(function(again, last, count, elapsed) {
+        return swf.pollForDecisionTask(getDecisionTaskParams, function(err, result_) {
+          if (err) { return callback(err); }
+
+          if (!result) {
+            result = result_;
+          } else {
+            result.events = result.events.concat(result_.events);
+          }
+
+          if (result_.nextPageToken) {
+            getDecisionTaskParams.nextPageToken = result_.nextPageToken;
+            return again();
+          }
+
+          /* otherwise */
+          return last();
+        });
+      }, function() {
+        return callback(null, result);
       });
     };
 
@@ -321,7 +350,7 @@ exports.load = function(sg, _, options_) {
         },
       };
 
-      _.extend(activity, _.pick(saOptions, 'scheduleToCloseTimeout', 'scheduleToStartTimeout', 'startToCloseTimeout'));
+      _.extend(activity.scheduleActivityTaskDecisionAttributes, _.pick(saOptions, 'scheduleToCloseTimeout', 'scheduleToStartTimeout', 'startToCloseTimeout', 'heartbeatTimeout'));
 
       scheduleActivityParams.decisions.push(activity);
     };
@@ -374,6 +403,80 @@ exports.load = function(sg, _, options_) {
       });
     };
 
+    self.activityFailed = function(token, details, reason, callback) {
+      var activityCompleteParams = {
+        taskToken : token,
+        //details    : JSON.stringify(_.extend({awsTaskToken:token}, details))
+        details    : JSON.stringify(details),
+        reason     : reason
+      };
+
+      return swf.respondActivityTaskFailed(activityCompleteParams, function(err, result) {
+        if (err) { console.error(err); }
+        return callback(err, result);
+      });
+    };
+
+    self.runWithSsh = function(userCommand, userArgs, ip, token, options_, callback) {
+      var options       = options_ || {};
+      var scriptFinish  = false;
+      var command       = [userCommand].concat(userArgs).join(' ');
+
+      var message       = options.msg         || 'run';
+      var name          = options.name        || ip;
+      var fail          = options.fail        || function() {};
+      var delay         = options.delay       || 2500;
+
+      //console.log( "runWithSsh", command);
+      //console.log( "runWithSsh", name, message, delay);
+
+      var start = _.now();
+      sg.until(function(again, last, count, elapsed) {
+        if (options.maxRuns && count > options.maxRuns) { return fail("Script ran too many times"); }
+
+        var waiting = function() {
+          return self.heartbeatAgain(token, format("WaitingFor %s-%s: %d", message, name, +elapsed), 2500, again, true);
+        };
+
+        var sshArgs = [ip, '-A', '-o', 'StrictHostKeyChecking no', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'ConnectTimeout=1', command];
+        //console.log( "runWithSshArgs", sshArgs);
+        sgawsSpawn('/usr/bin/ssh', sshArgs, name, message, function(code) {
+          //console.log( format("-----------------------------------activity: ssh %s close", message), name, code);
+
+          if (code === 255) { again.uncount(); }
+
+          if (options.firstTooFast) {
+            var sinceStart = _.now() - start;
+            console.log( format("-----------------------------------activity: ssh %s close", message), name, code, sinceStart, options.firstTooFast);
+            if (code !== 0 && (sinceStart < options.firstTooFast)) {
+              return waiting();
+            }
+
+            /* otherwise */
+            return last();
+          }
+
+          /* otherwise */
+          if (code === 0)  { return last(); }
+          return waiting();
+        });
+      }, function() {
+        scriptFinish = true;
+        return callback();
+      });
+
+      if (options.heartbeat2) {
+        var start = _.now();
+        sg.until(function(again2, last2) {
+          if (scriptFinish) { return last2(); }
+
+          /* otherwise -- heartbeat */
+          return self.heartbeatAgain(token, format("WaitingFor2 %s-%s: %d", message, name, +(_.now() - start)), 2500, again2, true);
+        }, function() {
+        });
+      }
+    };
+
     self.heartbeat = function(token, details, callback) {
       var params = {
         taskToken : token,
@@ -386,7 +489,11 @@ exports.load = function(sg, _, options_) {
       });
     };
 
-    self.heartbeatAgain = function(token, details, time, again) {
+    self.heartbeatAgain = function(token, details, time, again, verbose) {
+      if (verbose) {
+        //console.log( 'heartbeatAgain', details);
+      }
+
       var params = {
         taskToken : token,
         details   : details
@@ -530,9 +637,51 @@ exports.load = function(sg, _, options_) {
     });
   }
 
+  function sshStdxyz(xyz, displayIp_, displayMsg_, labelColor, contentColor) {
+    var displayIp   = sg.pad(displayIp_, 15);
+    var displayMsg  = sg.pad(displayMsg_, 12);
+
+    if (sg.verbosity() > 1) {
+      return function(line) {
+        process[xyz].write(chalk[labelColor](displayIp) +  ' ' + displayMsg + ' - ' + chalk[contentColor](line));
+      };
+    }
+
+    /* otherwise */
+    if (sg.verbosity() === 1) {
+      return function(line) {
+        process[xyz].write('.');
+      };
+    }
+
+    /* otherwise */
+    return function(){};
+  };
+
+  function sshStdout(displayIp, displayMsg) {
+    return sshStdxyz('stdout', displayIp, displayMsg, 'cyan', 'reset');
+  };
+
+  function sshStderr(displayIp, displayMsg) {
+    return sshStdxyz('stderr', displayIp, displayMsg, 'red', 'red');
+  };
+
+  function sgawsSpawn(command, args, displayIp, displayMsg, callback) {
+    return sg.spawnEz(command, args, {
+      newline : true,
+
+      stderr  : sshStderr(displayIp, displayMsg),
+      stdout  : sshStdout(displayIp, displayMsg),
+
+      close: function(code) {
+        return callback.apply(this, arguments);
+      }
+    });
+  };
 
   return sg;
 };
+
 
 
 

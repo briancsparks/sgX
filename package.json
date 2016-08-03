@@ -25,6 +25,7 @@
   "dependencies": {
     "async": "^2.0.0-rc.3",
     "aws-sdk": "^2.3.6",
+    "chalk": "^1.1.3",
     "fs-extra": "^0.26.4",
     "glob": "^6.0.4",
     "mkdirp": "^0.5.1",

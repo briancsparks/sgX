@@ -483,6 +483,75 @@ exports.load = function(sg, _) {
     }
   };
 
+  /**
+   *  A lot like exec (just have one callback), but with all the goodness
+   *  of spawn.  The callback also returns all the info that spawn can.
+   */
+  sg.exec = function(cmd, args /*, options, callback*/) {
+    var args_    = _.rest(arguments, 2);
+    var callback = args_.pop() || lib.noop;
+    var options  = args_.pop() || null;
+
+    var encoding = 'utf8';
+    if (options && 'encoding' in options) {
+      encoding = sg.extract(options, 'encoding');
+    }
+
+    var proc, error, exitCode, stdoutChunks = [], stderrChunks = [], signal;
+
+    if (options !== null) {
+      proc = spawn(cmd, args, options);
+    } else {
+      proc = spawn(cmd, args);
+    }
+
+    proc.stdout.setEncoding(encoding);
+    proc.stdout.on('data', function(chunk) {
+      stdoutChunks.push(chunk);
+    });
+
+    proc.stderr.setEncoding('utf8');
+    proc.stderr.on('data', function(chunk) {
+      stderrChunks.push(chunk);
+    });
+
+    // We must guard against calling the callback multiple times
+    var finalFunctionHasBeenCalled = false;
+    var finalFunction = function(which) {
+      if (finalFunctionHasBeenCalled) { return; }
+
+      if (which !== 'error') {
+        finalFunctionHasBeenCalled = true;
+        return callback(error, exitCode, stdoutChunks, stderrChunks, signal);
+      }
+
+      // An exit may arrive... give it a few moments
+      return setTimeout(function() {
+        if (finalFunctionHasBeenCalled) { return; }
+        finalFunctionHasBeenCalled = true;
+        return callback(error, exitCode, stdoutChunks, stderrChunks, signal);
+      }, 10);
+    };
+
+    proc.on('close', function(exitCode_, signal_) {
+      exitCode  = exitCode_;
+      signal    = signal_;
+      return finalFunction('close');
+    });
+
+    proc.on('error', function(err) {
+      error     = err;
+      return finalFunction('error');
+    });
+
+    proc.on('exit', function(exitCode_, signal_) {
+      exitCode  = exitCode_;
+      signal    = signal_;
+      return finalFunction('exit');
+    });
+
+  };
+
   return sg;
 };
 

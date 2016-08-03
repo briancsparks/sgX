@@ -33,7 +33,7 @@ sg.numKeys = function(obj) {
   return num;
 };
 
-sg.kv = function(o, k, v) {
+var kv = sg.kv = function(o, k, v) {
   if (arguments.length === 2) {
     return kv(null, o, k);
   }
@@ -278,8 +278,34 @@ sg.mkVerbose = function(modName) {
 
 var verbose = sg.mkVerbose('sg');
 
+/**
+ *  Display a big, fat error.
+ */
+sg.bigFatError = function(err, message, halt) {
+  console.error("----------------------------------------------------------------------------------------------------");
+  console.error("----------------------------------------------------------------------------------------------------");
+  console.error("----------------------------------------------------------------------------------------------------");
+  console.error("----------------------------------------------------------------------------------------------------");
+  console.error("----------------------------------------------------------------------------------------------------");
+  console.error("----------------------------------------------------------------------------------------------------");
+  if (message) {
+    console.error(message);
+  }
+  console.error(inspect(err));
+  console.error("----------------------------------------------------------------------------------------------------");
+  console.error("----------------------------------------------------------------------------------------------------");
+  if (halt) {
+    process.exit(1);
+  }
+
+  if (_.isString(err)) {
+    return new Error((message || "")+": "+err);
+  }
+  return err;
+};
+
 // Makes the attributes on a data object be the 'right' type (like '0' -> the number zero)
-sg.smartAttrs = function(obj) {
+var smartAttrs = sg.smartAttrs = function(obj) {
   return _.reduce(obj, function(m, value, key) {
     if (_.isString(value) && /^[0-9]+$/.exec(value)) {
       return sg.kv(m, key, parseInt(value, 10));
@@ -699,6 +725,11 @@ sg.until = function(/* [options,] fn, callback */) {
     return once();
   };
 
+  // Yes, this actually works
+  again.uncount = function(num_) {
+    count -= (num_ || 1);
+  };
+
   return once();
 };
 
@@ -707,7 +738,6 @@ sg.parseUrl = function(req, parseQuery) {
 };
 
 sg.getBody = function(req, callback) {
-
   // req.end might have already been called
   if (req.bodyJson) {
     return callback(null, req.bodyJson);
@@ -734,7 +764,8 @@ sg.getBody = function(req, callback) {
 
   /* otherwise */
   req.chunks = [];
-  req.on('data', function(chunk) {
+  req.on('data', function(chunk_) {
+    var chunk = chunk_.toString();
     req.chunks.push(chunk);
   });
 };
@@ -791,11 +822,20 @@ sg.httpRouteMatches = function(a /*, [fields], route*/) {
   return true;
 };
 
+// Dynamically load the Mongo helpers
 var __mdb;
 sg.mongo = function() {
   if (!__mdb) { __mdb = require('./dbex'); }
 
   return __mdb;
+};
+
+// Dynamically load the routes helpers
+var __routes;
+sg.routes = function() {
+  if (!__routes) { __routes = require('./ex-routes'); }
+
+  return __routes;
 };
 
 sg = require('./sgext').load(sg, _);

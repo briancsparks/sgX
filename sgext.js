@@ -12,6 +12,7 @@ exports.load = function(sg, _) {
   var request         = sg.extlibs.superagent   = require('superagent');
   var moment          = sg.extlibs.moment       = require('moment');
   var shelljs         = sg.extlibs.shelljs      = require('shelljs');
+  var split           = sg.extlibs.split        = require('split');
 
   sg.extlibs.request  = sg.extlibs.superagent;
 

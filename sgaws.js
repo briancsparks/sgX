@@ -343,7 +343,7 @@ exports.load = function(sg, _, options_) {
             name        : type,   // 'create-vpc'
             version     : workflowVersion
           },
-          input         : JSON.stringify(input),
+          input         : JSON.stringify(input, null, 2),
 
 
           taskList      : { name: taskName /* 'yoshi' */ }

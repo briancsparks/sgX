@@ -484,8 +484,18 @@ exports.load = function(sg, _) {
   };
 
   /**
+   *  Invoke an external command.
+   *
    *  A lot like exec (just have one callback), but with all the goodness
    *  of spawn.  The callback also returns all the info that spawn can.
+   *
+   *  @alias module:sgsg.exec
+   *
+   *  @param {string} cmd The external command to run.
+   *  @param {array} args Arguments to the command
+   *  @param {object} [options] options that will get passed to spawn.
+   *  @param {function} callback The callback will be called when the command has
+   *                             completed.
    */
   sg.exec = function(cmd, args /*, options, callback*/) {
     var args_    = _.rest(arguments, 2);
@@ -550,6 +560,45 @@ exports.load = function(sg, _) {
       return finalFunction('exit');
     });
 
+  };
+
+  /**
+   *  Writes the array of chunks to a file.
+   *
+   *  @alias module:sgsg.writeChunks
+   *
+   *  @param {string} path The chunks will be written to the file named by path.
+   *  @param {array} chunks The array of chunks to be written.
+   */
+  sg.writeChunks = function(path, chunks, callback) {
+
+    var stream  = fs.createWriteStream(path);
+    var i       = 0;
+
+    // This write function is taken from the Node.js web site.
+    write();
+    function write() {
+      var ok = true;
+      do {
+
+        if (i < chunks.length - 1) {
+          // see if we should continue, or wait
+          // don't pass the callback, because we're not done yet.
+          ok = stream.write(chunks[i]);
+        } else {
+          // last time!
+          stream.write(chunks[i], callback);
+        }
+
+        i += 1;
+      } while (i < chunks.length && ok);
+
+      if (i < chunks.length) {
+        // had to stop early!
+        // write some more once it drains
+        stream.once('drain', write);
+      }
+    }
   };
 
   return sg;

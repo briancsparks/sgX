@@ -3,6 +3,12 @@
  *  sg!
  */
 
+/**
+ *  sg
+ *
+ *  @module sgsg
+ */
+
 var _             = require('underscore');
 var util          = require('util');
 var urlLib        = require('url');
@@ -13,6 +19,11 @@ var tests = [];
 
 sg._ = _;
 
+/**
+ *  Returns if the program is running in debug mode.
+ *
+ *  @alias module:sgsg.isDebug
+ */
 sg.isDebug = function() {
   return process.env.NODE_ENV === 'development';
 };
@@ -207,9 +218,16 @@ sg.pad = function(val, len, sep_) {
 
 /**
  *  Generate a random string of the given length.
+ *
+ *  @alias module:sgsg.randomString
+ *
+ *  @param {int} length
+ *  @param {string} charSet The set of characters to choose from. If
+ *                          none is given, uses the 52 upper and lowercase English chars.
  */
-var alnumCharSet = sg.alnumCharSet = 'ABCDEFGHIJKLNMOPQRSTUVWXYZ0123456789abcdefghijklnmopqrstuvwxyz';
 sg.randomString = function(length, charSet) {
+  var alnumCharSet = sg.alnumCharSet = 'ABCDEFGHIJKLNMOPQRSTUVWXYZ0123456789abcdefghijklnmopqrstuvwxyz';
+
   length  = length  || 64;
   charSet = charSet || alnumCharSet;
 

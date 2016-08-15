@@ -44,6 +44,9 @@ sg.numKeys = function(obj) {
   return num;
 };
 
+/**
+ *  Build {k:v}
+ */
 var kv = sg.kv = function(o, k, v) {
   if (arguments.length === 2) {
     return kv(null, o, k);
@@ -51,6 +54,25 @@ var kv = sg.kv = function(o, k, v) {
 
   o = o || {};
   o[k] = v;
+  return o;
+};
+
+/**
+ *  Build {key:k, vName:v}
+ */
+var kkvv = sg.kkvv = function(o, k, v, vName) {
+  if (arguments.length === 2) {
+    return kkvv(null, o, k, 'value');
+  }
+
+  if (arguments.length === 3) {
+    return kkvv(null, o, k, v);
+  }
+
+  o         = o || {};
+  o.key     = k;
+  o[vName]  = v;
+
   return o;
 };
 

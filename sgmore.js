@@ -395,9 +395,10 @@ exports.load = function(sg, _) {
   var eachLine = sg.eachLine = function(pattern, options_, eachCallback, finalCallback) {
     var options = _.defaults({}, options_ || {}, {cwd: process.cwd()});
     var total   = 0;
+    var files   = [];
 
     var eachLineOfOneFile = function(filename, next) {
-      return fs.readFile(path.join(options.cwd, filename), 'utf8', function(err, contents) {
+      return fs.readFile(filename, 'utf8', function(err, contents) {
         if (err) { return next(err); }
 
         var lines = contents.split('\n');
@@ -405,15 +406,37 @@ exports.load = function(sg, _) {
           lines = _.filter(lines, options.lineFilter);
         }
 
-        for (var i = 0, l = lines.length; i < l; ++i) {
+        var i = 0, l = lines.length;
+        var oneLine = function() {
           total++;
+
           var result = eachCallback(lines[i], i, filename, total);
           if (result === 'SG.nextFile') {
             return next();
           }
-        }
 
-        return next();
+          if (result === 'SG.done') {
+            return finalCallback(null, total, files.length);
+          }
+
+          i += 1;
+          if (i < l) {
+            if (result === 'SG.breathe') {
+              //console.log('Breathing');
+              return setTimeout(oneLine, 500);
+            }
+
+            if (i % 200 === 0) {
+              return process.nextTick(oneLine);
+            }
+
+            return oneLine();
+          }
+
+          return next();
+        };
+
+        return oneLine();
       });
     };
 
@@ -428,10 +451,12 @@ exports.load = function(sg, _) {
     /* otherwise */
     options.filenameFilter = options.filenameFilter || function(){return true;};
 
-    return glob(pattern, options, function(err, files) {
+    return glob(pattern, options, function(err, files_) {
       if (err) { return finalCallback(err); }
 
-      return __each(files, function(filename, next) {
+      files = files_;
+      return sg.__each(files, function(filename_, next) {
+        var filename = path.join(options.cwd || '', filename_);
 
         return fs.stat(filename, function(err, stats) {
           if (err)              { return next(); }

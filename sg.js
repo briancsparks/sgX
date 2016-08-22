@@ -86,11 +86,11 @@ sg.trueOrFalse = function(value_) {
   return !!value;
 };
 
-sg.reduce = function(collection, initial, fn) {
+sg.reduce = sg._reduce = function(collection, initial, fn) {
   return _.reduce(collection, fn, initial);
 };
 
-sg.extract = function(collection, name) {
+sg.extract = sg._extract = function(collection, name) {
   var value = collection[name];
   delete collection[name];
   return value;

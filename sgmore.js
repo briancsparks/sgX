@@ -13,6 +13,8 @@ exports.load = function(sg, _) {
   var fs            = sg.extlibs.fs           = require('fs-extra');
   var glob          = sg.extlibs.glob         = require('glob');
 
+  var verbose       = sg.verbose;
+
   var dogStats;
 
   var dogStatsClosure = function() {
@@ -481,6 +483,7 @@ exports.load = function(sg, _) {
 
     var proc, errRemainder = '', outRemainder = '', streamOptions = {};
 
+    //verbose(0, "---------------------------------------- spawnEzing ----------------------------------", command, args, options);
     if (_.keys(options).length > 0) {
       proc = spawn(command, args, options);
     } else {

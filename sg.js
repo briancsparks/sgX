@@ -316,7 +316,7 @@ sg.mkVerbose = function(modName) {
   };
 };
 
-var verbose = sg.mkVerbose('sg');
+var verbose = sg.verbose = sg.mkVerbose('sg');
 
 /**
  *  Display a big, fat error.

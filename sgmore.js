@@ -629,6 +629,36 @@ exports.load = function(sg, _) {
     }
   };
 
+  var defAttr = function(obj, key, def_) {
+    var defValue = def_ || {};
+    obj[key] = obj[key] || defValue;
+    return obj[key];
+  };
+
+  var incAttr = function(obj, key) {
+    obj[key] = (obj[key] || 0) + 1;
+    return obj[key];
+  };
+
+  sg.DataHouse = function() {
+    var self = this;
+    self.data = {};
+
+    self.multiKeyCount = function(key, value, mfg) {
+      var args = _.toArray(arguments);
+      var last = args.pop();
+      var obj  = self.data;
+
+      _.each(args, function(arg) {
+        obj = defAttr(obj, arg);
+      });
+
+      return incAttr(obj, last);
+    };
+  };
+
+
+
   return sg;
 };
 

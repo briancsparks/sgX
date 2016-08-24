@@ -472,10 +472,14 @@ var TheARGV = function(params_) {
 
 var theARGV = null;
 var ARGV = sg.ARGV = function(params) {
+
+  // We have already computed theARGV with no params, so only re-compute if
+  // the caller passes in new params
   if (params) {
     return (theARGV = new TheARGV(params));
   }
 
+  // Compute if we have to, but return the cahed version otherwise
   return theARGV || (theARGV = new TheARGV(params));
 };
 theARGV = ARGV();
@@ -861,6 +865,8 @@ sg.httpRouteMatches = function(a /*, [fields], route*/) {
 
   return true;
 };
+
+sg = require('./sgargv').load(sg, _);
 
 // Dynamically load the Mongo helpers
 var __mdb;

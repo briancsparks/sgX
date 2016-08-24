@@ -18,7 +18,9 @@ libDb.db = function(dbUrlPre, dbName, callback) {
   }
 
   var dbUrl = dbUrlPre + '/' + dbName;
+console.log(dbUrl);
   return MongoClient.connect(dbUrl, function(err, db_) {
+console.log(err, dbUrl);
     if (err) { return callback(err); }
 
     dbs[dbName] = db_;

@@ -472,7 +472,12 @@ exports.load = function(sg, _, options_) {
           if (scriptFinish) { return last2(); }
 
           /* otherwise -- heartbeat */
-          return self.heartbeatAgain(token, format("WaitingFor2 %s-%s: %d", message, name, +(_.now() - start)), 2500, again2, true);
+          return self.heartbeatAgain(token, format("WaitingFor2 %s-%s: %d", message, name, +(_.now() - start)), 2500, again2, true, function(err) {
+            if (err) { return last2(); }
+
+            /* otherwise */
+            return again2();
+          });
         }, function() {
         });
       }
@@ -490,7 +495,9 @@ exports.load = function(sg, _, options_) {
       });
     };
 
-    self.heartbeatAgain = function(token, details, time, again, verbose) {
+    self.heartbeatAgain = function(token, details, time, again, verbose, callback_) {
+      var callback = callback_ || function(){};
+
       if (verbose) {
         //console.log( 'heartbeatAgain', details);
       }
@@ -501,7 +508,15 @@ exports.load = function(sg, _, options_) {
       };
 
       return swf.recordActivityTaskHeartbeat(params, function(err, result) {
-        if (err) { console.error('heartbeatAgain', err); }
+        if (!err) { return again(time); }
+
+        /* otherwise */
+        console.error('heartbeatAgain', err);
+        if (err.code === 'UnknownResourceFault') {
+          return callback(err);
+        }
+
+        /* otherwise */
         return again(time);
       });
     };

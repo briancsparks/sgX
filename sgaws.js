@@ -426,13 +426,14 @@ exports.load = function(sg, _, options_) {
       var name          = options.name        || ip;
       var fail          = options.fail        || function() {};
       var delay         = options.delay       || 2500;
+      var maxRuns       = options.maxRuns     || 6;
 
       //console.log( "runWithSsh", command);
       //console.log( "runWithSsh", name, message, delay);
 
       var start = _.now();
       sg.until(function(again, last, count, elapsed) {
-        if (options.maxRuns && count > options.maxRuns) { return fail("Script ran too many times"); }
+        if (count > maxRuns) { return fail("Script ran too many times"); }
 
         var waiting = function() {
           return self.heartbeatAgain(token, format("WaitingFor %s-%s: %d", message, name, +elapsed), 2500, again, true);

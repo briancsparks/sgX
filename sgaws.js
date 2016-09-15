@@ -445,6 +445,7 @@ exports.load = function(sg, _, options_) {
           //console.log( format("-----------------------------------activity: ssh %s close", message), name, code);
 
           if (code === 255) { again.uncount(); }
+          if (code === 253) { again.uncountSometimes(); }   // This is the buildout script intentionally rebooting
 
           if (options.firstTooFast) {
             var sinceStart = _.now() - start;

@@ -774,6 +774,13 @@ sg.until = function(/* [options,] fn, callback */) {
     count -= (num_ || 1);
   };
 
+  // Yes, this actually works
+  again.uncountSometimes = function(num_) {
+    if (Math.random() > 0.25) {
+      return again.uncount.apply(this, arguments);
+    }
+  };
+
   return once();
 };
 

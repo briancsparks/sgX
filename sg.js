@@ -891,6 +891,12 @@ sg.routes = function() {
   return __routes;
 };
 
+sg.exportify = function(theModule, mod) {
+  _.each(mod, function(value, key) {
+    theModule.exports[key] = value;
+  });
+};
+
 sg = require('./sgext').load(sg, _);
 sg = require('./sgmore').load(sg, _);
 sg = require('./sgaws').load(sg, _);

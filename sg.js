@@ -118,6 +118,135 @@ sg.cleanKey = function(key) {
   return key.replace(/[^a-zA-Z0-9_]/g, '_');
 };
 
+var capitalizeFirstLetter = sg.capitalizeFirstLetter = function(s) {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+};
+
+/**
+ *  Returns the snake-case version of the string.
+ *
+ *  instance-type --> instance_type
+ */
+var toSnakeCase = sg.toSnakeCase = function(key) {
+  var parts = _.chain(key.split('.')).map(function(x) { return x.split(/[-_]/g); }).flatten().value();
+  return parts.join('_');
+};
+
+/**
+ *  Returns the dot.case version of the string.
+ *
+ *  instance_type --> instance.type
+ */
+var toDotCase = sg.toDotCase = function(key) {
+  var parts = _.chain(key.split('.')).map(function(x) { return x.split(/[-_]/g); }).flatten().value();
+  return parts.join('.');
+};
+
+/**
+ *  Returns the dash-case version of the string.
+ *
+ *  instance_type --> instance-type
+ */
+var toDashCase = sg.toDashCase = function(key) {
+  var parts = _.chain(key.split('.')).map(function(x) { return x.split(/[-_]/g); }).flatten().value();
+  return parts.join('-');
+};
+
+/**
+ *  Returns the camel-case version of the string.
+ *
+ *  instance_type --> instanceType
+ *  instance-type --> instanceType
+ */
+var toCamelCase = sg.toCamelCase = function(key) {
+  var parts = _.chain(key.split('.')).map(function(x) { return x.split(/[-_]/g); }).flatten().value();
+  var result  = parts.shift();
+
+  _.each(parts, function(s) {
+    result += capitalizeFirstLetter(s);
+  });
+
+  return result;
+};
+
+/**
+ *  Returns the CapitalCase version of the string.
+ *
+ *  instance_type --> InstanceType
+ *  instance-type --> InstanceType
+ */
+var toCapitalCase = sg.toCapitalCase = function(key) {
+  return capitalizeFirstLetter(toCamelCase(key));
+};
+
+// Ask for the dash-case or snake_case or identifier.case name, get those or camelCase
+var argvGet = sg.argvGet = function(argv, names_) {
+  var i, name, names = names_.split(',');
+
+  for (i = 0; i < names.length; i += 1) {
+    if ((name = names[i]) in argv)                  { return argv[name]; }
+    if ((name = toDashCase(names[i])) in argv)      { return argv[name]; }
+    if ((name = toSnakeCase(names[i])) in argv)     { return argv[name]; }
+    if ((name = toCamelCase(names[i])) in argv)     { return argv[name]; }
+    if ((name = toCapitalCase(names[i])) in argv)   { return argv[name]; }
+    if ((name = toDotCase(names[i])) in argv)       { return argv[name]; }
+  }
+};
+
+/**
+ *  Gets a sub-sub-key.
+ */
+var deref = sg.deref = function(x, keys_) {
+  var keys = keys_.split('.'), key;
+  var result = x;
+
+  while (keys.length > 0) {
+    key = keys.shift();
+    if (!(result = result[key])) {
+      // We got a falsy result.  If this was the last item, return it (so, for example
+      // we would return a 0 (zero) if looked up.
+      if (keys.length === 0) { return result; }
+
+      /* otherwise -- return undefined */
+      return /* undefined */;
+    }
+  }
+
+  return result;
+};
+
+/**
+ *  Sets sub-sub-key of object.
+ *
+ *  setOn(x, 'foo.bar.baz', 42)
+ *
+ *  x = {foo:{bar:{baz:42}}}
+ *
+ *  Does not set the sub-object if value is undefined. This allows:
+ *
+ *      // if abc is not set on  options, x.foo.bar.baz does not get set
+ *      setOn(x, 'foo.bar.baz', options.abc);
+ */
+var setOn = sg.setOn = function(x, keys_, value) {
+  if (_.isUndefined(value)) { return; }
+
+  var keys = keys_.split('.'), key;
+  var owner = x;
+
+  while (keys.length > 1) {
+    key = keys.shift();
+    owner[key] = owner[key] || {};
+    owner = owner[key];
+  }
+
+  if ((key = keys.shift())) {
+    owner[key] = value;
+    return owner[key];
+  }
+
+  return;
+};
+
 /**
  *  Increments a key of an object, starts at zero if not present.
  */
@@ -159,20 +288,6 @@ sg.incKeyed = function(obj, name, value) {
   obj[key].count  = (obj[key].count  || 0) + (value || 1);
 
   return obj[key];
-};
-
-sg.deref = function(x, keys_) {
-  var keys = keys_.split('.'), key;
-  var result = x;
-
-  while (keys.length > 0) {
-    key = keys.shift();
-    if (!(result = result[key])) {
-      return /* undefined */;
-    }
-  }
-
-  return result;
 };
 
 var safeJSONParse = sg.safeJSONParse = function(str, def) {
@@ -259,9 +374,6 @@ sg.randomString = function(length, charSet) {
   }
 
   return result;
-};
-
-var reportError = sg.reportError = function(error) {
 };
 
 sg.runTest = function(testFn) {
@@ -354,7 +466,7 @@ var smartAttrs = sg.smartAttrs = function(obj) {
   }, {});
 };
 
-sg.toError = function(e) {
+var toError = sg.toError = function(e) {
   if (e instanceof Error)     { return e; }
   if (_.isString(e))          { return new Error(e); }
   if (_.isArray(e))           { return new Error(JSON.stringify(e)); }
@@ -370,6 +482,21 @@ sg.toError = function(e) {
   if (e === undefined)        { return e; }
 
   return new Error('' + e);
+};
+
+var reportError = sg.reportError = function(e, message) {
+  if (!e) { return; }
+
+  var result = toError(e);
+
+  if (message) {
+    process.stderr.write(message);
+    process.stderr.write(': ');
+  }
+
+  console.error(result);
+
+  return result;
 };
 
 var TheARGV = function(params_) {
@@ -416,6 +543,11 @@ var TheARGV = function(params_) {
 
   self.getJson = function(options) {
     return JSON.stringify(self.getParams(options));
+  };
+
+  // Ask for the dash-case or snake_case or identifier.case name, get those or camelCase
+  self.get = function(names_) {
+    return argvGet(self, names_);
   };
 
   // Initialize -- scan the arguments
@@ -561,6 +693,25 @@ sg.mkDie = function(dieTryingFn) {
       // This inner function should not be called, as the dieTryingFn should intercept it
     }));
   };
+};
+
+var die = sg.die = function(a,b,c) {
+  if (arguments.length === 0)       { return die(1, ''); }
+  if (arguments.length === 1) {
+    if (_.isString(a))              { return die(1, a); }
+    if (_.isNumber(a))              { return die(a, ''); }
+  }
+
+  if (arguments.length >= 2) {
+    if (_.isFunction(b))            { sg.reportError(a, c); return b(a); }
+  }
+
+  if (b) {
+    process.stderr.write(b);
+    process.stderr.write('\n');
+  }
+
+  process.exit(a);
 };
 
 var __each_ = function(coll, fn, callback) {

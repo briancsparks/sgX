@@ -184,13 +184,14 @@ var argvGet = sg.argvGet = function(argv, names_) {
   var i, name, names = names_.split(',');
 
   for (i = 0; i < names.length; i += 1) {
-    if ((name = names[i]) in argv)                  { return argv[name]; }
-    if ((name = toDashCase(names[i])) in argv)      { return argv[name]; }
-    if ((name = toSnakeCase(names[i])) in argv)     { return argv[name]; }
-    if ((name = toCamelCase(names[i])) in argv)     { return argv[name]; }
-    if ((name = toCapitalCase(names[i])) in argv)   { return argv[name]; }
-    if ((name = toDotCase(names[i])) in argv)       { return argv[name]; }
+    if ((name = names[i]) in argv)                  { return sg.smartValue(argv[name]); }
+    if ((name = toDashCase(names[i])) in argv)      { return sg.smartValue(argv[name]); }
+    if ((name = toSnakeCase(names[i])) in argv)     { return sg.smartValue(argv[name]); }
+    if ((name = toCamelCase(names[i])) in argv)     { return sg.smartValue(argv[name]); }
+    if ((name = toCapitalCase(names[i])) in argv)   { return sg.smartValue(argv[name]); }
+    if ((name = toDotCase(names[i])) in argv)       { return sg.smartValue(argv[name]); }
   }
+
 };
 
 /**
@@ -454,6 +455,19 @@ sg.bigFatError = function(err, message, halt) {
     return new Error((message || "")+": "+err);
   }
   return err;
+};
+
+/**
+ *  Makes x the right type.
+ */
+var smartValue = sg.smartValue = function(value) {
+  if (_.isString(value)) {
+    if (/^[0-9]+$/.exec(value)) { return parseInt(value, 10); }
+    if (value === 'true')       { return true; }
+    if (value === 'false')      { return false; }
+  }
+
+  return value;
 };
 
 // Makes the attributes on a data object be the 'right' type (like '0' -> the number zero)

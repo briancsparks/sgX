@@ -76,6 +76,30 @@ var kkvv = sg.kkvv = function(o, k, v, vName) {
   return o;
 };
 
+var isnt = sg.isnt = function(x) {
+  return _.isNull(x) || _.isUndefined(x);
+};
+
+/**
+ *  Build {k:v}, but do not set the value if k or v are undefined/null.
+ *
+ *  This allows passing in undefined, and getting the original object
+ *  back, without mods.
+ */
+var kvSmart = sg.kvSmart = function(o, k, v) {
+  if (arguments.length === 2) {
+    return kvSmart(null, o, k);
+  }
+
+  o = o || {};
+
+  if (!isnt(k) && !isnt(v)) {
+    o[k] = v;
+  }
+
+  return o;
+};
+
 sg.trueOrFalse = function(value_) {
   var value = value_;
   if (value === true || value === false)  { return value; }
@@ -305,6 +329,88 @@ var safeJSONParse = sg.safeJSONParse = function(str, def) {
 
 sg.deepCopy = function(x) {
   return sg.safeJSONParse(JSON.stringify(x));
+};
+
+/**
+ *    Returns the string ip address into a Number.
+ *
+ *    For use with subnet masks.
+ */
+var ipNumber = sg.ipNumber = function(ip_) {
+    var ip = ip_.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+    if(ip) {
+        return (+ip[1]<<24) + (+ip[2]<<16) + (+ip[3]<<8) + (+ip[4]);
+    }
+    // else ... ?
+    return 0;
+};
+
+var dottedIp = sg.dottedIp = function(n) {
+  return [n >> 24, (n & 0xffffff) >> 16, (n & 0xffff) >> 8, n & 0xff].join('.');
+};
+
+var isInCidrBlock = sg.isInCidrBlock = function(ip, cidr) {
+  var parts = cidr.split('/');
+  return (ipNumber(ip) & ipMask(parts[1])) == ipNumber(parts[0]);
+};
+
+var firstIpInCidrBlock = sg.firstIpInCidrBlock = function(cidr) {
+  var parts       = cidr.split('/');
+  var minNumber   = ipNumber(parts[0]) & ipMask(parts[1]);
+  return dottedIp(minNumber);
+};
+
+var lastIpInCidrBlock = sg.lastIpInCidrBlock = function(cidr) {
+  var parts       = cidr.split('/');
+  var maxNumber   = ipNumber(parts[0]) | ~ipMask(parts[1]);
+  return dottedIp(maxNumber);
+};
+
+var nextIp = sg.nextIp = function(ip) {
+  return dottedIp(ipNumber(ip) + 1);
+};
+
+/**
+ *    Returns the mask size as a Number.
+ *
+ *    For use with subnet masks.
+ */
+var ipMask = sg.ipMask = function(maskSize) {
+  return -1 << (32 - maskSize);
+};
+
+// Ips and Cidrs work
+var octet1 = sg.octet1 = function(ip) {
+  var parts = (ip || '').split(/[^0-9]/);
+  return parts[0];
+};
+
+// Ips and Cidrs work
+var octet2 = sg.octet2 = function(ip) {
+  var parts = (ip || '').split(/[^0-9]/);
+  if (parts.length > 1) { return parts[1]; }
+  return;
+};
+
+// Ips and Cidrs work
+var octet3 = sg.octet3 = function(ip) {
+  var parts = (ip || '').split(/[^0-9]/);
+  if (parts.length > 2) { return parts[2]; }
+  return;
+};
+
+// Ips and Cidrs work
+var octet4 = sg.octet4 = function(ip) {
+  var parts = (ip || '').split(/[^0-9]/);
+  if (parts.length > 3) { return parts[3]; }
+  return;
+};
+
+// octet5 is the size of the cidr
+var octet5 = sg.octet5 = function(ip) {
+  var parts = (ip || '').split(/[^0-9]/);
+  if (parts.length > 4) { return parts[4]; }
+  return;
 };
 
 sg.startsWith = function(longStr, start) {

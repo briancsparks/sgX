@@ -537,6 +537,29 @@ sg.mkVerbose = function(modName) {
 
 var verbose = sg.verbose = sg.mkVerbose('sg');
 
+sg.mkLogger = function(argv) {
+
+  var vLevel = 0;
+  if      (argv.vvvvvvvvverbose)  { vLevel = 9; }
+  else if (argv.vvvvvvvverbose)   { vLevel = 8; }
+  else if (argv.vvvvvvverbose)    { vLevel = 7; }
+  else if (argv.vvvvvverbose)     { vLevel = 6; }
+  else if (argv.vvvvverbose)      { vLevel = 5; }
+  else if (argv.vvvverbose)       { vLevel = 4; }
+  else if (argv.vvverbose)        { vLevel = 3; }
+  else if (argv.vverbose)         { vLevel = 2; }
+  else if (argv.verbose)          { vLevel = 1; }
+
+  return function() {
+    if (vLevel >= 2) {
+      _.each(arguments, function(arg, index) {
+        process.stderr.write(inspect(arg));
+        process.stderr.write(' ');
+      });
+    }
+  };
+};
+
 /**
  *  Display a big, fat error.
  */

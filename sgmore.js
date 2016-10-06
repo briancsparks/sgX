@@ -522,8 +522,9 @@ exports.load = function(sg, _) {
    *  @param {string} cmd The external command to run.
    *  @param {array} args Arguments to the command
    *  @param {object} [options] options that will get passed to spawn.
-   *  @param {function} callback The callback will be called when the command has
-   *                             completed.
+   *  @param {function} callback The callback will be called when the command has completed.
+   *
+   *  callback(error, exitCode, stdoutChunks, stderrChunks, signal)
    */
   sg.exec = function(cmd, args /*, options, callback*/) {
     var args_    = _.rest(arguments, 2);
@@ -554,21 +555,24 @@ exports.load = function(sg, _) {
     });
 
     // We must guard against calling the callback multiple times
-    var finalFunctionHasBeenCalled = false;
+    var finalFunctionHasBeenCalled = false, closeTimer = null;
     var finalFunction = function(which) {
       if (finalFunctionHasBeenCalled) { return; }
 
-      if (which !== 'error') {
+      if (which === 'close') {
         finalFunctionHasBeenCalled = true;
+        if (closeTimer) {
+          clearTimeout(closeTimer);
+        }
         return callback(error, exitCode, stdoutChunks, stderrChunks, signal);
       }
 
-      // An exit may arrive... give it a few moments
-      return setTimeout(function() {
+      // A close may arrive... give it a few moments
+      return closeTimer = setTimeout(function() {
         if (finalFunctionHasBeenCalled) { return; }
         finalFunctionHasBeenCalled = true;
         return callback(error, exitCode, stdoutChunks, stderrChunks, signal);
-      }, 10);
+      }, 1000);
     };
 
     proc.on('close', function(exitCode_, signal_) {

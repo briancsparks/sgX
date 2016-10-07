@@ -12,6 +12,7 @@
 var _             = require('underscore');
 var util          = require('util');
 var urlLib        = require('url');
+var assert        = require('assert');
 
 // Here I am :)
 var sg    = {extlibs:{_:_}};
@@ -131,6 +132,104 @@ sg.extracts = function(collection /*, names... */) {
   return result;
 };
 
+/**
+ *  Helps you turn passed-in arguments into arrays.
+ *
+ *  For example, users usually want the following to all work for a join-style function:
+ *
+ *      join('a', 'b', 'c')         ==> ['a', 'b', 'c']     (case 1)
+ *      join(['a', 'b', 'c'])       ==> ['a', 'b', 'c']     (case 2)
+ *
+ *  and even this, even if it seems weird:
+ *
+ *      join('d')                   ==> ['d']               (case 3)
+ *
+ *  and they also want to be able to start from an arbitrary point:
+ *
+ *      join('.', 'a', 'b', 'c')    ==> ['a', 'b', 'c']     (case 4)
+ *      join('.', ['a', 'b', 'c'])  ==> ['a', 'b', 'c']     (case 5)
+ */
+sg.arrayify = function(args_, start_) {
+
+  // args might be an arguments object, so turn it into a real array
+  var start   = arguments.length > 1 ? start_ : 0;
+  var args    = _.rest(args_, start);
+
+  if (args.length === 0)  { return []; }
+
+  if (_.isArray(args[0])) { return args[0]; }
+
+  return args;
+};
+
+tests.push(function() {
+
+  (function() {
+    assert(_.isEqual(sg.arrayify(arguments), []));
+  }());
+
+  (function() {
+    assert(_.isEqual(sg.arrayify(arguments), ['a', 'b', 'c']));     /* case 1 */
+  }('a', 'b', 'c'));
+
+  (function() {
+    assert(_.isEqual(sg.arrayify(arguments), ['a', 'b', 'c']));     /* case 2 */
+  }(['a', 'b', 'c']));
+
+  (function() {
+    assert(_.isEqual(sg.arrayify(arguments), ['a', 'b', 'c']));     /* case 2 */
+  }(['a', 'b', 'c'], 42));
+
+  (function() {
+    assert(_.isEqual(sg.arrayify(arguments), ['d']));               /* case 3 */
+  }('d'));
+
+  (function() {
+    assert(_.isEqual(sg.arrayify(arguments, 1), ['a', 'b', 'c']));  /* case 4 */
+  }('.', 'a', 'b', 'c'));
+
+  (function() {
+    assert(_.isEqual(sg.arrayify(arguments, 1), ['a', 'b', 'c']));     /* case 5 */
+  }('.', ['a', 'b', 'c']));
+
+  console.log("arrayify() -- pass");
+});
+
+/**
+ *  Functional join.
+ *
+ *  This is the version that does work.
+ */
+var join_ = function(sep, parts) {
+  return _.toArray(parts).join(sep);
+};
+
+/**
+ *  Functional join.
+ *
+ *  The version that users will usually want
+ */
+sg.join = function(sep /*, parts...*/) {
+  return join_(sep, _.rest(arguments));
+};
+
+/**
+ *  Join by dots.
+ */
+sg.dotted = function() {
+  return join_('.', arguments);
+};
+
+/**
+ *  Join by dashes.
+ */
+sg.dashed = function() {
+  return join_('-', arguments);
+};
+
+/**
+ *  Change dots into dashes.
+ */
 sg.dashifyKey = function(key) {
   return key.replace(/\./g, '-');
 };
@@ -1202,4 +1301,9 @@ _.each(sg, function(fn, name) {
 //exports.sgmore = function() { return require('./sgmore'); };
 //exports.sgext  = function() { return require('./sgext'); };
 
+if (process.argv[1] === __filename) {
+  _.each(tests, function(test) {
+    test();
+  });
+}
 

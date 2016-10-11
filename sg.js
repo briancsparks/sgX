@@ -133,6 +133,15 @@ sg.extracts = function(collection /*, names... */) {
 };
 
 /**
+ *  Make sure the item is an array.
+ */
+sg.toArray = function(x) {
+  if (x === null || _.isUndefined(x)) { return []; }
+  if (_.isArray(x))                   { return x; }
+  return [x];
+};
+
+/**
  *  Helps you turn passed-in arguments into arrays.
  *
  *  For example, users usually want the following to all work for a join-style function:

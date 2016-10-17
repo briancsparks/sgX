@@ -327,6 +327,23 @@ var argvGet = sg.argvGet = function(argv, names_) {
 };
 
 /**
+ *  Returns the value, but also removes it.
+ */
+var argvExtract = sg.argvExtract = function(argv, names_) {
+  var i, name, names = names_.split(',');
+
+  for (i = 0; i < names.length; i += 1) {
+    if ((name = names[i]) in argv)                  { return sg.smartValue(sg.extract(argv, name)); }
+    if ((name = toDashCase(names[i])) in argv)      { return sg.smartValue(sg.extract(argv, name)); }
+    if ((name = toSnakeCase(names[i])) in argv)     { return sg.smartValue(sg.extract(argv, name)); }
+    if ((name = toCamelCase(names[i])) in argv)     { return sg.smartValue(sg.extract(argv, name)); }
+    if ((name = toCapitalCase(names[i])) in argv)   { return sg.smartValue(sg.extract(argv, name)); }
+    if ((name = toDotCase(names[i])) in argv)       { return sg.smartValue(sg.extract(argv, name)); }
+  }
+
+};
+
+/**
  *  Gets a sub-sub-key.
  */
 var deref = sg.deref = function(x, keys_) {

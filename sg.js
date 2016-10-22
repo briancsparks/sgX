@@ -244,6 +244,21 @@ sg.dashifyKey = function(key) {
 };
 
 /**
+ *  Is the value in the list-as-a-sting.
+ *
+ *  strList : 'a,foo,barbaz'
+ *  value   : 'a'
+ *
+ *  Must do ',a,foo,barbaz,'.indexOf(...)
+ */
+sg.inList = function(strList, value, sep_) {
+  var sep = sep_ || ',';
+
+  var surrounded = sep + strList + sep;
+  return surrounded.indexOf(sep + value + sep) !== -1;
+};
+
+/**
  *  Makes the key a valid identifier (letter, digit, or underscore).
  */
 sg.cleanKey = function(key) {
@@ -1163,6 +1178,9 @@ sg.until = function(/* [options,] fn, callback */) {
   var fn        = args.pop();
   var options   = args.shift() || {};
 
+  var max       = options.max;
+  var timeout   = options.timeout;
+
   options.interval  = options.interval || options.delay;
 
   var count = -1, start = _.now();
@@ -1170,6 +1188,17 @@ sg.until = function(/* [options,] fn, callback */) {
   var again;
   var once = function() {
     count += 1;
+
+    // Limit the number of executions
+    if (options.max) {
+      if (count >= max)                 { return callback(toError("Too many executions in until(): "+count)); }
+    }
+
+    // Limit the time it can run
+    if (options.timeout) {
+      if (timeout > (_.now() - start))  { return callback(toError("Timeout in until: ("+(_.now() - start)+" ms.)")); }
+    }
+
     return fn(again, callback, count, _.now() - start);
   };
 

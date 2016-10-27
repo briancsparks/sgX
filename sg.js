@@ -413,6 +413,15 @@ var setOn = sg.setOn = function(x, keys_, value) {
 };
 
 /**
+ *  Calls setOn many times
+ */
+var setOnMulti = sg.setOnMulti = function(obj, keyStart, value, attrNames) {
+  _.each(attrNames.split(','), function(name) {
+    sg.setOn(obj, [keyStart, name].join('.'), value);
+  });
+};
+
+/**
  *  Increments a key of an object, starts at zero if not present.
  */
 sg.inc = function(obj, key, value) {

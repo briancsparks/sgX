@@ -381,7 +381,39 @@ var deref = sg.deref = function(x, keys_) {
 };
 
 /**
- *  Sets sub-sub-key of object.
+ *  Sets sub-sub-key of object, and always returns the passed-in value.
+ *
+ *  setOnn(x, 'foo.bar.baz', 42)
+ *
+ *  x = {foo:{bar:{baz:42}}}
+ *
+ *  Does not set the sub-object if value is undefined. This allows:
+ *
+ *      // if abc is not set on  options, x.foo.bar.baz does not get set
+ *      setOn(x, 'foo.bar.baz', options.abc);
+ */
+var setOnn = sg.setOnn = function(x, keys_, value) {
+  if (_.isUndefined(value)) { return value; }
+
+  var keys  = _.isArray(keys_) ? keys_ : keys_.split('.');
+  var owner = x, key;
+
+  while (keys.length > 1) {
+    key = keys.shift();
+    owner[key] = owner[key] || {};
+    owner = owner[key];
+  }
+
+  if ((key = keys.shift())) {
+    owner[key] = value;
+  }
+
+  return value;
+};
+
+/**
+ *  Sets sub-sub-key of object, returns the value if it was successfuly
+ *  set, otherwise returns undefined.
  *
  *  setOn(x, 'foo.bar.baz', 42)
  *

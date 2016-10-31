@@ -395,8 +395,8 @@ var deref = sg.deref = function(x, keys_) {
 var setOn = sg.setOn = function(x, keys_, value) {
   if (_.isUndefined(value)) { return; }
 
-  var keys = keys_.split('.'), key;
-  var owner = x;
+  var keys  = _.isArray(keys_) ? keys_ : keys_.split('.');
+  var owner = x, key;
 
   while (keys.length > 1) {
     key = keys.shift();
@@ -604,6 +604,21 @@ sg.pad = function(val, len, sep_) {
   var str = '' + val;
   while (str.length < len) {
     str = sep + str;
+  }
+
+  return str;
+};
+
+sg.lpad = function(val, len, sep_) {
+  var sep = sep_;
+  if (!sep) {
+    if (_.isNumber(val))  { sep = '0'; }
+    else                  { sep = ' '; }
+  }
+
+  var str = '' + val;
+  while (str.length < len) {
+    str = str + sep;
   }
 
   return str;

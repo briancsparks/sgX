@@ -362,8 +362,8 @@ var argvExtract = sg.argvExtract = function(argv, names_) {
  *  Gets a sub-sub-key.
  */
 var deref = sg.deref = function(x, keys_) {
-  var keys = keys_.split('.'), key;
-  var result = x;
+  var keys    = _.isArray(keys_) ? keys_ : keys_.split('.'), key;
+  var result  = x;
 
   while (keys.length > 0) {
     key = keys.shift();
@@ -378,6 +378,38 @@ var deref = sg.deref = function(x, keys_) {
   }
 
   return result;
+};
+
+/**
+ *  Sets sub-sub-key of object as an array, and always returns the passed-in value.
+ *
+ *  setOnn(x, 'foo.bar.baz', 42)
+ *
+ *  x = {foo:{bar:{baz:[42]}}}
+ *
+ *  Does not set the sub-object if value is undefined. This allows:
+ *
+ *      // if abc is not set on  options, x.foo.bar.baz does not get set
+ *      setOn(x, 'foo.bar.baz', options.abc);
+ */
+var setOnna = sg.setOnna = function(x, keys_, value) {
+  if (_.isUndefined(value)) { return value; }
+
+  var keys  = _.isArray(keys_) ? keys_ : keys_.split('.');
+  var owner = x, key;
+
+  while (keys.length > 1) {
+    key = keys.shift();
+    owner[key] = owner[key] || {};
+    owner = owner[key];
+  }
+
+  if ((key = keys.shift())) {
+    owner[key] = owner[key] || [];
+    owner[key].push(value);
+  }
+
+  return value;
 };
 
 /**

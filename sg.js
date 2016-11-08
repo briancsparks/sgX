@@ -688,6 +688,24 @@ sg.lpad = function(val, len, sep_) {
   return str;
 };
 
+sg.ltrim = function(s, ch) {
+  while (s[0] === ch && s.length > 0) {
+    s = s.substr(1);
+  }
+  return s;
+};
+
+sg.rtrim = function(s, ch) {
+  while (s[s.length-1] === ch && s.length > 0) {
+    s = s.substr(0, s.length-1);
+  }
+  return s;
+};
+
+sg.trim = function(s, ch) {
+  return sg.rtrim(sg.ltrim(s, ch), ch);
+};
+
 /**
  *  Generate a random string of the given length.
  *
@@ -786,6 +804,30 @@ sg.mkLogger = function(argv) {
       });
     }
   };
+};
+
+/**
+ *
+ *  printf("here it %03s1 is", 4) ==> "here it 004 is"
+ *
+ *  args are 1-based
+ *
+ *
+ */
+sg.printf = function(fmt) {
+  var params = _.rest(arguments);
+  return fmt.replace(/(%([0-9]*)s([0-9]))/g, function(m, p, width, argNum) {
+    var repl = params[argNum-1];
+    if (width.length > 0) {
+      if (width[0] === '0') {
+        repl = pad(repl, width, '0');
+      } else {
+        repl = pad(repl, width);
+      }
+    }
+
+    return repl;
+  });
 };
 
 /**

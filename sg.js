@@ -77,6 +77,23 @@ var kkvv = sg.kkvv = function(o, k, v, vName) {
   return o;
 };
 
+/**
+ *  Build {k:v}, where the key is a dotted-key
+ */
+var dottedKv = sg.dottedKv = function(o, k, v) {
+  if (arguments.length === 2) {
+
+    if (_.isArray(o)) { return dottedKv(null, o.join('.'), k); }
+    return kv(null, o, k);
+  }
+
+  if (_.isArray(k)) { return dottedKv(o, k.join('.'), v); }
+
+  o = o || {};
+  o[k] = v;
+  return o;
+};
+
 var isnt = sg.isnt = function(x) {
   return _.isNull(x) || _.isUndefined(x);
 };
@@ -1281,6 +1298,45 @@ sg.__runll = function(/*fns, max, onDone*/) {
   args.push(onDone);
 
   return __eachll2.apply(this, args);
+};
+
+/**
+ *  Make a die function for things running in parallel.
+ */
+sg.__mkDiell = function(callback) {
+
+  var die = function(a, b) {
+
+    // Handle overloads
+    if (arguments.length === 0)       { return die(1, ''); }
+    if (arguments.length === 1) {
+      if (_.isString(a))              { return die(1, a); }
+      if (_.isNumber(a))              { return die(a, ''); }
+    }
+
+    // Only run once
+    if (die.dead)         { return; }
+    die.dead = true;
+
+    if (_.isNumber(a)) {
+      // Not a callback situation.
+      if (b) {
+        process.stderr.write(b);
+        process.stderr.write('\n');
+      }
+
+      process.exit(a);
+    }
+
+    /* otherwise -- callback with the error */
+    sg.reportError(a, b);
+    return callback(a);
+  };
+
+  die.dead = false;
+
+
+  return die;
 };
 
 sg.__run = function(a, b) {

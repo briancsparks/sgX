@@ -94,6 +94,18 @@ var dottedKv = sg.dottedKv = function(o, k, v) {
   return o;
 };
 
+/**
+ *  Is the parameter strictly an Object (and not an Array, or Date, or ...).
+ */
+var isObject = sg.isObject = function(x) {
+  if (!_.isObject(x))                     { return false; }
+  if (_.isArray(x)    || _.isDate(x))     { return false; }
+  if (_.isFunction(x) || _.isRegExp(x))   { return false; }
+  if (_.isError(x))                       { return false; }
+
+  return true;
+};
+
 var isnt = sg.isnt = function(x) {
   return _.isNull(x) || _.isUndefined(x);
 };
@@ -561,6 +573,22 @@ sg.deepCopy = function(x) {
   return sg.safeJSONParse(JSON.stringify(x));
 };
 
+sg.shallowCopy = function(x) {
+  var result;
+
+  if (_.isArray(x)) {
+    return Array.prototype.slice.apply(x);
+  } else if (_.isObject(x)) {
+    result = {};
+    _.each(x, function(value, key) {
+      result[key] = value;
+    });
+    return result;
+  }
+
+  return x;
+};
+
 /**
  *    Returns the string ip address into a Number.
  *
@@ -929,6 +957,10 @@ var reportError = sg.reportError = function(e, message) {
   console.error(result);
 
   return result;
+};
+
+sg.mimeType = function(name) {
+  return sg.extlibs.mime.lookup.apply(sg.extlibs.mime, arguments);
 };
 
 var TheARGV = function(params_) {

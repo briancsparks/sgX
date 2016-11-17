@@ -14,6 +14,7 @@ exports.load = function(sg, _) {
   var shelljs         = sg.extlibs.shelljs      = require('shelljs');
   var split           = sg.extlibs.split        = require('split');
   var chalk           = sg.extlibs.chalk        = require('chalk');
+  var mime            = sg.extlibs.mime         = require('mime-types');
 
   sg.extlibs.request  = sg.extlibs.superagent;
 

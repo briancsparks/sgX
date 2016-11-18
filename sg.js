@@ -29,6 +29,28 @@ sg.isDebug = function() {
   return process.env.NODE_ENV === 'development';
 };
 
+var seconds = sg.seconds = sg.second = 1000,        second = seconds;
+var minutes = sg.minutes = sg.minute = 60*seconds,  minute = minutes;
+var hours   = sg.hours   = sg.hour   = 60*minutes,  hour   = hours;
+var days    = sg.days    = sg.day    = 24*hours,    day    = days;
+var weeks   = sg.weeks   = sg.week   = 7*days,      week   = weeks;
+var months  = sg.months  = sg.month  = 30*days,     month  = months;
+var years   = sg.years   = sg.year   = 365*days,    year   = years;
+
+sg.timeBetween = function(a_, b_) {
+  var a     = _.isDate(a) ? a.getTime() : a;
+  var b     = _.isDate(b) ? b.getTime() : b;
+  var diff  = b-a;
+
+  if (diff < 0) { diff = a-b; }
+
+  return diff;
+};
+
+sg.timeSince = function(a) {
+  return sg.timeBetween(a, _.now());
+};
+
 sg.firstKey = function(obj) {
   for (var k in obj) {
     return k;
@@ -54,6 +76,10 @@ var kv = sg.kv = function(o, k, v) {
   }
 
   o = o || {};
+
+  if (isnt(k))              { return o; }
+  if (_.isUndefined(v))     { return o; }
+
   o[k] = v;
   return o;
 };
@@ -128,6 +154,32 @@ var kvSmart = sg.kvSmart = function(o, k, v) {
   }
 
   return o;
+};
+
+/**
+ *  Makes a map of true values.
+ *
+ *    {
+ *      foo: true,
+ *      bar: true
+ *    }
+ */
+sg.mkSet = function(coll, sep) {
+  if (sg.isObject(coll))  { return sg.mkSet(_.keys(coll)); }
+  if (_.isString(coll))   { return sg.mkSet(coll.split(sep || ',')); }
+
+  return _.reduce(coll, function(m, key) {
+    return sg.kv(m, key, true);
+  }, {});
+};
+
+/**
+ *  Returns if x is within the comma-delimited set of strings.
+ */
+sg.inSet = function(x, theSet_, sep) {
+  var theSet = theSet_;
+  if (!sg.isObject(theSet))   { theSet = sg.mkSet(theSet, sep); }
+  return x in theSet;
 };
 
 sg.trueOrFalse = function(value_) {

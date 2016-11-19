@@ -1062,8 +1062,15 @@ var TheARGV = function(params_) {
   };
 
   // Ask for the dash-case or snake_case or identifier.case name, get those or camelCase
-  self.get = function(names_) {
-    return argvGet(self, names_);
+  self.get = self.argvGet = self.getArg = function(names_, options) {
+    var result;
+
+    // If the caller passed in options, those come first
+    if (options && (result = argvGet(options, names_)))    { return result; }
+
+    /* otherwise -- get from our args */
+    result = argvGet(self, names_);
+    return result;
   };
 
   // Initialize -- scan the arguments

@@ -1237,6 +1237,12 @@ var die = sg.die = function(a,b,c) {
   process.exit(a);
 };
 
+sg.mkFailFn = function(callback) {
+  return function(err) {
+    return callback(sg.toError(err));
+  };
+};
+
 var __each_ = function(coll, fn, callback) {
 
   if (_.isArray(coll) && coll.length <= 0) {

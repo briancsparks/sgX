@@ -1082,7 +1082,7 @@ var TheARGV = function(params_) {
     curr = process.argv[i];
 
     // --foo=bar, --foo=
-    if ((m = /^--([a-zA-Z_0-9\-]+)=([^ ]+)$/.exec(curr)) && m.length === 3) {
+    if ((m = /^--([a-zA-Z_0-9\-]+)=(.+)$/.exec(curr)) && m.length === 3) {
       self.setFlag(m[1], m[2]);
     }
     // --foo-
@@ -1622,6 +1622,13 @@ sg.routes = function() {
   if (!__routes) { __routes = require('./ex-routes'); }
 
   return __routes;
+};
+
+sg.callMain = function(argv, filename) {
+  if (process.argv[1] === filename) { return true; }
+  if (argv.main)                    { return true; }
+
+  return false;
 };
 
 sg.exportify = function(theModule, mod) {

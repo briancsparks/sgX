@@ -806,6 +806,42 @@ sg.trim = function(s, ch) {
 };
 
 /**
+ *  Truncates string to the given length, removing initial chars.
+ */
+sg.lchop = function(s, len, padLen) {
+  len = (len < 0 ? 0 : len);
+
+  while (s.length > len) {
+    s = s.substr(1);
+  }
+
+  if (_.isUndefined(padLen)) {
+    return s;
+  }
+
+  /* otherwise */
+  return sg.lpad(s, padLen);
+};
+
+/**
+ *  Truncates string to the given length, removing final chars.
+ */
+sg.rchop = function(s, len, padLen) {
+  len = (len < 0 ? 0 : len);
+
+  while (s.length > len) {
+    s = s.substr(0, s.length-1);
+  }
+
+  if (_.isUndefined(padLen)) {
+    return s;
+  }
+
+  /* otherwise */
+  return sg.pad(s, padLen);
+};
+
+/**
  *  Generate a random string of the given length.
  *
  *  @alias module:sgsg.randomString

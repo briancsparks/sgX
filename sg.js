@@ -1279,6 +1279,48 @@ sg.mkFailFn = function(callback) {
   };
 };
 
+/**
+ *  When you have a next function, like in an sg.__run(...), you could get an
+ *  err response at any time.  If you want to log the error, and skip the rest
+ *  of the step, but want to continue on with the next step, use this.
+ *
+ *
+ *  Usage:
+ *        if (err) { return skip(err, next); }
+ *
+ */
+sg.skip = function(msg_, next) {
+  var msg = msg_;
+  if (!_.isString(msg)) { msg = sg.inspect(msg_); }
+
+  console.error(msg);
+  return next();
+};
+
+/**
+ *  While in active development, in an sg.__run(...) you can check parameters easily
+ *  with reason(), logging why you are not doing something.
+ *
+ *  * Your code must handle the situation -- validate inputs -- this is an easy way.
+ *  * But generally, you go to the next step.
+ *  * Then, later, you can change it to reasonX to be less verbose, if you want.
+ *
+ *  Usage:
+ *      if (!body.clientId) { return reason('cannot parse query Client --no body.clientId', next); }
+ *
+ */
+sg.reason = function(msg_, next) {
+  var msg = msg_;
+  if (!_.isString(msg)) { msg = sg.inspect(msg_); }
+
+  console.log(msg);
+  return next();
+};
+
+sg.reasonX = function(msg, next) {
+  return next();
+};
+
 var __each_ = function(coll, fn, callback) {
 
   if (_.isArray(coll) && coll.length <= 0) {

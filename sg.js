@@ -551,6 +551,8 @@ var setOnn = sg.setOnn = function(x, keys_, value) {
  *  Sets sub-sub-key of object, returns the value if it was successfuly
  *  set, otherwise returns undefined.
  *
+ *  The setOnn... variants always return the passed-in value.
+ *
  *  setOn(x, 'foo.bar.baz', 42)
  *
  *  x = {foo:{bar:{baz:42}}}

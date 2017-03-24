@@ -440,6 +440,29 @@ var argvExtract = sg.argvExtract = function(argv, names_) {
 };
 
 /**
+ *  _.pick for ARGV args.
+ */
+sg.argvPick = function(argv, names_) {
+  var i, name, names = names_;
+
+  if (_.isString(names)) {
+    names = names_.split(',');
+  }
+
+  var result = {};
+  for (i = 0; i < names.length; i += 1) {
+    if ((name = names[i]) in argv)                  { result[name] = sg.smartValue(argv[name]); }
+    if ((name = toDashCase(names[i])) in argv)      { result[name] = sg.smartValue(argv[name]); }
+    if ((name = toSnakeCase(names[i])) in argv)     { result[name] = sg.smartValue(argv[name]); }
+    if ((name = toCamelCase(names[i])) in argv)     { result[name] = sg.smartValue(argv[name]); }
+    if ((name = toCapitalCase(names[i])) in argv)   { result[name] = sg.smartValue(argv[name]); }
+    if ((name = toDotCase(names[i])) in argv)       { result[name] = sg.smartValue(argv[name]); }
+  }
+
+  return result;
+};
+
+/**
  *  Gets a sub-sub-key.
  */
 var deref = sg.deref = function(x, keys_) {
@@ -1277,6 +1300,35 @@ sg.mkFailFn = function(callback) {
   return function(err) {
     return callback(sg.toError(err));
   };
+};
+
+/**
+ *  Was the callback called to mean a good result? (Are the results OK?)
+ *
+ *  When you get a callback: `function(err, result1, result2) {...}` you can call
+ *
+ *          if (ok(err, result1, result2)) {
+ *            // result1 and 2 are valid
+ *          }
+ *
+ *  or:
+ *
+ *          if (!ok(err, result1, result2)) { return err; }
+ */
+sg.ok = function(err /*, [argN]*/) {
+  if (err)  { console.error(err); return false; }
+
+  var result = true;
+  _.each(_.rest(arguments), function(value, index) {
+    var is = !isnt(value);
+
+    result = result && is;
+    if (!is) {
+      console.error("Param "+index+" is "+value);
+    }
+  });
+
+  return result;
 };
 
 /**

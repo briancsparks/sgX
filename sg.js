@@ -1340,6 +1340,7 @@ sg.ok = function(err /*, [argN]*/) {
  *  err response at any time.  If you want to log the error, and skip the rest
  *  of the step, but want to continue on with the next step, use this.
  *
+ *  Virtually identical to `return next()` except you can log the msg/err to stderr
  *
  *  Usage:
  *        if (err) { return skip(err, next); }
@@ -1360,6 +1361,8 @@ sg.skip = function(msg_, next) {
  *  * Your code must handle the situation -- validate inputs -- this is an easy way.
  *  * But generally, you go to the next step.
  *  * Then, later, you can change it to reasonX to be less verbose, if you want.
+ *
+ *  Virtually identical to `return next()` except you can log the msg/err to stdout
  *
  *  Usage:
  *      if (!body.clientId) { return reason('cannot parse query Client --no body.clientId', next); }

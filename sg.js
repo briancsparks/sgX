@@ -466,6 +466,8 @@ sg.argvPick = function(argv, names_) {
  *  Gets a sub-sub-key.
  */
 var deref = sg.deref = function(x, keys_) {
+  if (isnt(x)) { return /* undefined */; }
+
   var keys    = _.isArray(keys_) ? keys_ : keys_.split('.'), key;
   var result  = x;
 
@@ -497,7 +499,7 @@ var deref = sg.deref = function(x, keys_) {
  *      setOn(x, 'foo.bar.baz', options.abc);
  */
 var setOnna = sg.setOnna = function(x, keys_, value) {
-  if (_.isUndefined(value)) { return value; }
+  if (isnt(value)) { return value; }
 
   var keys  = _.isArray(keys_) ? keys_ : keys_.split('.');
   var owner = x, key;
@@ -529,7 +531,7 @@ var setOnna = sg.setOnna = function(x, keys_, value) {
  *      setOn(x, 'foo.bar.baz', options.abc);
  */
 var setOnn = sg.setOnn = function(x, keys_, value) {
-  if (_.isUndefined(value)) { return value; }
+  if (isnt(value)) { return value; }
 
   var keys  = _.isArray(keys_) ? keys_ : keys_.split('.');
   var owner = x, key;
@@ -563,7 +565,7 @@ var setOnn = sg.setOnn = function(x, keys_, value) {
  *      setOn(x, 'foo.bar.baz', options.abc);
  */
 var setOn = sg.setOn = function(x, keys_, value) {
-  if (_.isUndefined(value)) { return; }
+  if (isnt(value)) { return; }
 
   var keys  = _.isArray(keys_) ? keys_ : keys_.split('.');
   var owner = x, key;

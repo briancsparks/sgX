@@ -132,6 +132,19 @@ var isObject = sg.isObject = function(x) {
   return true;
 };
 
+/**
+ *
+ */
+var isPod = sg.isPod = function(x) {
+  if (_.isString(x))            { return true; }
+  if (_.isNumber(x))            { return true; }
+  if (_.isBoolean(x))           { return true; }
+  if (_.isDate(x))              { return true; }
+  if (_.isRegExp(x))            { return true; }
+
+  return false;
+};
+
 var isnt = sg.isnt = function(x) {
   return _.isNull(x) || _.isUndefined(x);
 };
@@ -666,6 +679,21 @@ sg.shallowCopy = function(x) {
   }
 
   return x;
+};
+
+/**
+ *  Make a clean object (all attrs are POD).
+ */
+sg.cleanCopy = function(obj) {
+  var result = {}, keys = _.keys(obj);
+
+  _.each(keys, function(key) {
+    if (isPod(obj[key])) {
+      result[key] = obj[key];
+    }
+  });
+
+  return result;
 };
 
 /**

@@ -1,6 +1,6 @@
 {
   "name": "sgsg",
-  "version": "0.8.6",
+  "version": "0.9.0",
   "description": "All the best functional JS in one easy, consistent place.",
   "main": "sg.js",
   "bin": {
@@ -31,7 +31,6 @@
     "mime-types": "^2.1.12",
     "mkdirp": "^0.5.1",
     "moment": "^2.11.1",
-    "mongodb": "^2.1.18",
     "shelljs": "^0.5.3",
     "split": "^1.0.0",
     "superagent": "^1.7.1",

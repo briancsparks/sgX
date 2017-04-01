@@ -74,4 +74,20 @@ test('Deep extend handles a POD replacing an object', function(t) {
   // x and y should not be changed
   t.deepEqual(x, {a:1, b:{c:2,d:'33',e:'fg'},h:{i:10}});
   t.deepEqual(y, {a:9, b:{    d:'99'},       h:'foobar'});
+});
+
+test('Deep extend handles multiple values', function(t) {
+  var x = {a:1, b:{c:2,d:'33',e:'fg'},h:{i:10}};
+  var y = {a:9, b:{    d:'99'},       h:'foobar'};
+  var w = {     b:{c:'aa', q:'ux'},   h:{i:10,j:11}};
+
+  var z = sg.extend(x, y, w);
+
+  // z should be the result
+  t.deepEqual(z, {a:9, b:{c:'aa',d:'99',e:'fg',q:'ux'},h:{i:10,j:11}});
+
+  // x and y should not be changed
+  t.deepEqual(x, {a:1, b:{c:2,d:'33',e:'fg'},h:{i:10}});
+  t.deepEqual(y, {a:9, b:{    d:'99'},       h:'foobar'});
+  t.deepEqual(w, {     b:{c:'aa', q:'ux'},   h:{i:10,j:11}});
 })

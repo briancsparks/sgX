@@ -58,7 +58,7 @@ sg.firstKey = function(obj) {
   return ;
 };
 
-sg.numKeys = function(obj) {
+var numKeys = sg.numKeys = function(obj) {
   var num = 0;
   for (var k in obj) {
     num++;
@@ -207,6 +207,24 @@ sg.trueOrFalse = function(value_) {
 
 sg.reduce = sg._reduce = function(collection, initial, fn) {
   return _.reduce(collection, fn, initial);
+};
+
+/**
+ *  Just like _.each, except adds three params to the callback:
+ *
+ *  * The numeric index (call invocation number)
+ *  * isFirst
+ *  * isLast
+ */
+sg.each = sg._each = function(collection, fn, context) {
+  var numericIndex = 0;
+  var length = collection.length || numKeys(collection);
+
+  _.each(collection, function(element, index, coll) {
+    var args = [element, index, {collection: coll, i:numericIndex, first:(numericIndex === 0), last:(numericIndex+1 === length), length:length}];
+    numericIndex += 1;
+    return fn.apply(this, args);
+  }, context);
 };
 
 sg.extract = sg._extract = function(collection, name) {

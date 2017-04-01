@@ -252,6 +252,12 @@ sg.extracts = function(collection /*, names... */) {
  *
  */
 var extend = sg.extend = function(first /*, ...*/) {
+
+  // Handle degenerate case special
+  if (_.every(arguments, function(x) { return sg.isnt(x); })) {
+    return null;
+  }
+
   var args = _.rest(arguments);
   var second;
 

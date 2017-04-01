@@ -7,6 +7,11 @@ var test              = require('ava');
 var sg    = require('../../sg');
 
 test('Deep extend handles degenerate cases.', function(t) {
+  var z = sg.extend(null, null);
+  t.deepEqual(z, null);
+});
+
+test('Deep extend handles degenerate cases.', function(t) {
   var z = sg.extend({a:1}, {});
   t.deepEqual(z, {a:1});
 });

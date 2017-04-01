@@ -245,6 +245,43 @@ sg.extracts = function(collection /*, names... */) {
 };
 
 /**
+ *  A deep version of underscores extend.
+ *
+ *  It is assumed that the objects have similar layout, and are
+ *  plain objects (they should not have functions or prototypes.)
+ *
+ */
+var extend = sg.extend = function(first /*, ...*/) {
+  var args = _.rest(arguments);
+  var second;
+
+  var dest = sg.reduce(first, {}, function(m, value, key) {
+    return kv(m, key, value);
+  });
+
+  while (args.length > 0) {
+    second = args.shift();
+    dest = sg.reduce(second, sg.deepCopy(dest), function(m, sValue, sKey) {
+
+      // If seconds value is POD, it will just clobber the dest
+      if (!isObject(sValue)) {
+        return kv(m, sKey, sValue);
+      }
+
+      // If firsts value is POD, it will be clobbered
+      if (!isObject(m[sKey])) {
+        return kv(m, sKey, sValue);
+      }
+
+      // Otherwise -- they are both objects, we must merge
+      return kv(m, sKey, extend(m[sKey], sValue));
+    });
+  }
+
+  return dest;
+};
+
+/**
  *  Make sure the item is an array.
  */
 sg.toArray = function(x) {

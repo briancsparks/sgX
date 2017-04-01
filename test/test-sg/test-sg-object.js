@@ -6,6 +6,26 @@ var test              = require('ava');
 
 var sg    = require('../../sg');
 
+test('Deep extend handles degenerate cases.', function(t) {
+  var z = sg.extend({a:1}, {});
+  t.deepEqual(z, {a:1});
+});
+
+test('Deep extend handles more degenerate cases.', function(t) {
+  var z = sg.extend({}, {s:'am'});
+  t.deepEqual(z, {s:'am'});
+});
+
+test('Deep extend handles nulls', function(t) {
+  var z = sg.extend(null, {s:'am'});
+  t.deepEqual(z, {s:'am'});
+});
+
+test('Deep extend handles nulls 2', function(t) {
+  var z = sg.extend({s:'am'}, null);
+  t.deepEqual(z, {s:'am'});
+});
+
 test('Deep extend recurses', function(t) {
   var x = {a:1, b:{c:2,d:'33'}};
   var y = {a:9, b:{c:8,d:'99'}};

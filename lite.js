@@ -216,6 +216,22 @@ sg.extracts = function(collection /*, names... */) {
   return result;
 };
 
+var safeJSONParse = sg.safeJSONParse = function(str, def) {
+  if (str !== '') {
+    try {
+      return JSON.parse(str);
+    } catch(err) {
+      verbose(4, "Error parsing JSON", str, err);
+    }
+  }
+
+  return arguments.length > 1 ? def : {};
+};
+
+sg.deepCopy = function(x) {
+  return sg.safeJSONParse(JSON.stringify(x));
+};
+
 /**
  *  A deep version of underscores extend.
  *

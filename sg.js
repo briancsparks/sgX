@@ -994,6 +994,10 @@ var inspect = sg.inspect = function(x) {
   return util.inspect(x, {depth:null, colors:true});
 };
 
+var inspectFlat = sg.inspectFlat = function(x) {
+  return sg.inspect(x).replace(/ *\n */g, ' ');
+};
+
 var verbosity = sg.verbosity = function() {
 
   var vLevel = 0;

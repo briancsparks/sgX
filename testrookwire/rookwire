@@ -1,0 +1,27 @@
+#!/bin/bash -e
+
+sgsg_testing="$(pwd)/$(dirname $0)/.."
+real_sgsg="$sgsg_testing/../sgsg"
+
+# npm link this sgsg
+echo "Setting this copy of sgsg to be the real one..."
+(cd $sgsg_testing && npm link --production)
+
+echo ''
+echo "------------------- Now the tests:"
+echo ava $sgsg_testing/test/rookwire.js
+
+# Suspend "on error stop"
+set +e
+ava $sgsg_testing/testrookwire/rookwire.js
+test_status="$?"
+set -e
+
+echo "------------------- tests done"
+echo ''
+
+echo "Restoring the real sgsg..."
+(cd $real_sgsg && npm link --production)
+
+exit "$test_status"
+

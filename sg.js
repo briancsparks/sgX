@@ -20,7 +20,18 @@ var tests = [];
 
 sg._ = _;
 
+// Get functions from lite.js
 sg = _.extend(sg, require('./lite'));
+
+var kv              = sg.kv;
+var kkvv            = sg.kkvv;
+var dottedKv        = sg.dottedKv;
+var isObject        = sg.isObject;
+var isPod           = sg.isPod;
+var isnt            = sg.isnt;
+var kvSmart         = sg.kvSmart;
+var safeJSONParse   = sg.safeJSONParse;
+var extend          = sg.extend;
 
 sg.timeBetween = function(a_, b_) {
   var a     = _.isDate(a) ? a.getTime() : a;

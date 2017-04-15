@@ -115,4 +115,15 @@ test('Deep extend handles multiple values', function(t) {
   t.deepEqual(x, {a:1, b:{c:2,d:'33',e:'fg'},h:{i:10}});
   t.deepEqual(y, {a:9, b:{    d:'99'},       h:'foobar'});
   t.deepEqual(w, {     b:{c:'aa', q:'ux'},   h:{i:10,j:11}});
-})
+});
+
+test('isnt() knows null', function(t) {
+  t.is(sg.isnt(null), true);
+});
+
+test('deref() dereferences', function(t) {
+  var x = {a:{b:{c:1}}};
+  t.is(sg.deref(x, 'a.b.c'), 1);
+});
+
+

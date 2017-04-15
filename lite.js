@@ -186,7 +186,7 @@ sg.trueOrFalse = function(value_) {
  */
 sg.each = sg._each = function(collection, fn, context) {
   var numericIndex = 0;
-  var length = collection.length || numKeys(collection);
+  var length = collection.length || sg.numKeys(collection);
 
   _.each(collection, function(element, index, coll) {
     var args = [element, index, {collection: coll, i:numericIndex, first:(numericIndex === 0), last:(numericIndex+1 === length), length:length}];

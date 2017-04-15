@@ -1273,6 +1273,14 @@ sg.httpRouteMatches = function(a /*, [fields], route*/) {
 
 sg = require('./sgargv').load(sg, _);
 
+// Dynamically load the routes helpers
+var __routes;
+sg.routes = function() {
+  if (!__routes) { __routes = require('./ex-routes'); }
+
+  return __routes;
+};
+
 sg.callMain = function(argv, filename) {
   if (process.argv[1] === filename) { return true; }
   if (argv.main)                    { return true; }

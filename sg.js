@@ -1166,10 +1166,66 @@ sg.ok = function(err /*, [argN]*/) {
 
 sg = _.extend(sg, require('./flow'));
 
+// ----------------------------------------------------------------------------------------------------
+//
+// Build up a message on the res object, to be shown at the end of a request
+//
+//
+
+/**
+ *  Do the middleware thang to the req and res objects.
+ */
+sg.mwReqRes = function(req, res) {
+
+  // Add a log
+  res.sg = {
+    start   : _.now(),
+    logMsg  : [],
+    errors  : []
+  };
+
+  var origEnd   = res.end;
+  res.end = function() {
+    res.end   = origEnd;
+
+    res.sg.logMsg[1] = _.now() - res.sg.start;
+
+    console.log(res.sg.logMsg.join('; '));
+    return res.end.apply(res, arguments);
+  };
+
+  res.sg.logMsg.push(urlLib.parse(req.url).pathname);
+  res.sg.logMsg.push(0);       // Placeholder for duration
+};
+
+/**
+ *  Add a message.
+ */
+sg.resMsg = function(res, msg) {
+  if (!res || !msg) { return; }
+
+  res.sg        = res.sg        || {};
+  res.sg.logMsg = res.sg.logMsg || [];
+
+  res.sg.logMsg.push(msg);
+};
+
+/**
+ *  Sets an error on the req/res.
+ */
+sg.resErr = function(res, err) {
+  if (!res || !err) { return; }
+
+  res.sg        = res.sg        || {};
+  res.sg.errors = res.sg.errors || [];
+
+  res.sg.errors.push(err);
+};
+
 /**
  *  Invoke a function for each item in a second-level array.
  *
- *  Here is a snippet for enumerating the instances in the data that is 
+ *  Here is a snippet for enumerating the instances in the data that is
  *  returned from describeInstances:
  *
  *    _.each(reservations.Reservations, function(reservation) {

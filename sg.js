@@ -714,6 +714,7 @@ sg.randomString = function(length, charSet) {
 
   return result;
 };
+sg.hexCharSet = "0123456789abcdef";
 
 sg.runTest = function(testFn) {
 };

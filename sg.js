@@ -432,6 +432,7 @@ var setOnMulti = sg.setOnMulti = function(obj, keyStart, value, attrNames) {
  *  Increments a key of an object, starts at zero if not present.
  */
 sg.inc = function(obj, key, value) {
+  if (!obj) { return; }
   if (!key) { return; }
 
   obj[key] = (obj[key]  || 0) + (value || 1);

@@ -33,6 +33,9 @@ var kvSmart         = sg.kvSmart;
 var safeJSONParse   = sg.safeJSONParse;
 var extend          = sg.extend;
 
+// Get functions from http.js
+sg = _.extend(sg, require('./http'));
+
 sg.timeBetween = function(a_, b_) {
   var a     = _.isDate(a) ? a.getTime() : a;
   var b     = _.isDate(b) ? b.getTime() : b;
@@ -1252,39 +1255,6 @@ sg.eachFrom = function(arr, itemName, fn) {
 
 sg.parseUrl = function(req, parseQuery) {
   return req && req.url && urlLib.parse(req.url, parseQuery);
-};
-
-sg.getBody = function(req, callback) {
-  // req.end might have already been called
-  if (req.bodyJson) {
-    return callback(null, req.bodyJson);
-  }
-
-  var onEnd = function() {
-
-    req.bodyJson = req.bodyJson || safeJSONParse(req.chunks.join(''));
-    req.bodyJson = smartAttrs(req.bodyJson);
-
-    if (req.bodyJson.meta) {
-      req.bodyJson.meta = smartAttrs(req.bodyJson.meta);
-    }
-
-    return callback(null, req.bodyJson);
-  };
-
-  req.on('end', onEnd);
-
-  // Only collect the data once
-  if (req.chunks) {
-    return;
-  }
-
-  /* otherwise */
-  req.chunks = [];
-  req.on('data', function(chunk_) {
-    var chunk = chunk_.toString();
-    req.chunks.push(chunk);
-  });
 };
 
 /**

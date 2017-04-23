@@ -216,6 +216,8 @@ sg.extracts = function(collection /*, names... */) {
   return result;
 };
 
+sg.extend
+
 var safeJSONParse = sg.safeJSONParse = function(str, def) {
   if (str !== '') {
     try {
@@ -230,6 +232,15 @@ var safeJSONParse = sg.safeJSONParse = function(str, def) {
 
 sg.deepCopy = function(x) {
   return sg.safeJSONParse(JSON.stringify(x));
+};
+
+/**
+ *  Just like _.extend, but does not mutate the 1st arg.
+ */
+sg._extend = function() {
+  var args = _.toArray(arguments);
+  args.unshift({});
+  return _.extend.apply(_, args);
 };
 
 /**

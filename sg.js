@@ -31,6 +31,8 @@ var isPod           = sg.isPod;
 var isnt            = sg.isnt;
 var kvSmart         = sg.kvSmart;
 var safeJSONParse   = sg.safeJSONParse;
+var smartAttrs      = sg.smartAttrs;
+var smartValue      = sg.smartValue;
 var extend          = sg.extend;
 
 // Get functions from http.js
@@ -848,29 +850,6 @@ sg.bigFatError = function(err, message, halt) {
     return new Error((message || "")+": "+err);
   }
   return err;
-};
-
-/**
- *  Makes x the right type.
- */
-var smartValue = sg.smartValue = function(value) {
-  if (_.isString(value)) {
-    if (/^[0-9]+$/.exec(value)) { return parseInt(value, 10); }
-    if (value === 'true')       { return true; }
-    if (value === 'false')      { return false; }
-  }
-
-  return value;
-};
-
-// Makes the attributes on a data object be the 'right' type (like '0' -> the number zero)
-var smartAttrs = sg.smartAttrs = function(obj) {
-  return _.reduce(obj, function(m, value, key) {
-    if (_.isString(value) && /^[0-9]+$/.exec(value)) {
-      return sg.kv(m, key, parseInt(value, 10));
-    }
-    return sg.kv(m, key, value);
-  }, {});
 };
 
 var toError = sg.toError = function(e) {

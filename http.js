@@ -4,6 +4,9 @@
  */
 var _         = require('underscore');
 var sgflow    = require('./flow');
+var sglite    = require('./lite');
+var urlLib    = require('url');
+var crypto    = require('crypto');
 var sg        = {};
 
 /**
@@ -56,7 +59,7 @@ sg.mwHook = function(options_) {
 
     }, function(next) {
       if (!options.body) { return next(); }
-      return sg.body(req, function(err, next));
+      return sg.getBody(req, next);
     }], function() {
       return nextMw();
     });
@@ -121,11 +124,11 @@ sg.getBody = function(req, callback) {
 
   var onEnd = function() {
 
-    req.bodyJson = req.bodyJson || safeJSONParse(req.chunks.join(''));
-    req.bodyJson = smartAttrs(req.bodyJson);
+    req.bodyJson = req.bodyJson || sglite.safeJSONParse(req.chunks.join(''));
+    req.bodyJson = sglite.smartAttrs(req.bodyJson);
 
     if (req.bodyJson.meta) {
-      req.bodyJson.meta = smartAttrs(req.bodyJson.meta);
+      req.bodyJson.meta = sglite.smartAttrs(req.bodyJson.meta);
     }
 
     return callback(null, req.bodyJson);

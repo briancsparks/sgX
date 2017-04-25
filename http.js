@@ -9,6 +9,8 @@ var urlLib    = require('url');
 var crypto    = require('crypto');
 var sg        = {};
 
+var hasBody = {POST:true, PUT:true};
+
 /**
  *  Do the middleware thang to the req and res objects.
  */
@@ -58,8 +60,22 @@ sg.mwHook = function(options_) {
       return next();
 
     }, function(next) {
-      if (!options.body) { return next(); }
-      return sg.getBody(req, next);
+      if (options.body === false) { return next(); }
+      if (!hasBody[req.method])   { return next(); }
+
+      return getRawBody(req, function(err, bodyBuffer) {
+        if (err || !bodyBuffer)   { return next(); }
+
+        req.bodyJson = req.bodyJson || sglite.safeJSONParse(req.bufferChunks.toString());
+        req.bodyJson = sglite.smartAttrs(req.bodyJson);
+
+        if (req.bodyJson.meta) {
+          req.bodyJson.meta = sglite.smartAttrs(req.bodyJson.meta);
+        }
+
+        return next();
+      });
+
     }], function() {
       return nextMw();
     });
@@ -146,6 +162,31 @@ sg.getBody = function(req, callback) {
   req.on('data', function(chunk_) {
     var chunk = chunk_.toString();
     req.chunks.push(chunk);
+  });
+};
+
+var getRawBody = function(req, callback) {
+  // req.end might have already been called
+  if (req.bufferChunks) {
+    return callback(null, req.bufferChunks);
+  }
+
+  var onEnd = function() {
+    req.bufferChunks = Buffer.concat(req.rawChunks);
+    return callback(null, req.bufferChunks);
+  };
+
+  req.on('end', onEnd);
+
+  // Only collect the data once
+  if (req.rawChunks) {
+    return;
+  }
+
+  /* otherwise */
+  req.rawChunks = [];
+  req.on('data', function(chunk) {
+    req.rawChunks.push(chunk);
   });
 };
 

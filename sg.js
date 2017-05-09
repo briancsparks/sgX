@@ -1121,6 +1121,22 @@ sg.mkFailFn = function(callback) {
 };
 
 /**
+ *  Make a function that can be used to wrap a callback.
+ *
+ *  @param {function} errFn - The function to be called on error.
+ */
+sg.mkOnError = function(errFn) {
+  return function(cb) {
+    return function(err /*, ...*/) {
+      if (!err) { return cb.apply(this, arguments); }
+
+      /* otherwise */
+      return errFn.apply(this, arguments);
+    };
+  };
+};
+
+/**
  *  Was the callback called to mean a good result? (Are the results OK?)
  *
  *  When you get a callback: `function(err, result1, result2) {...}` you can call

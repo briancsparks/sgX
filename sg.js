@@ -365,6 +365,7 @@ var setOnna = sg.setOnna = function(x, keys_, value) {
  */
 var setOnn = sg.setOnn = function(x, keys_, value) {
   if (isnt(value)) { return value; }
+  if (isnt(keys_)) { return value; }
 
   var keys  = _.isArray(keys_) ? keys_ : keys_.split('.');
   var owner = x, key;
@@ -399,6 +400,7 @@ var setOnn = sg.setOnn = function(x, keys_, value) {
  */
 var setOn = sg.setOn = function(x, keys_, value) {
   if (isnt(value)) { return; }
+  if (isnt(keys_)) { return; }
 
   var keys  = _.isArray(keys_) ? keys_ : keys_.split('.');
   var owner = x, key;

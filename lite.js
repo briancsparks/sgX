@@ -122,6 +122,188 @@ var isnt = sg.isnt = function(x) {
 };
 
 /**
+ *  Join by dots.
+ */
+sg.dotted = function() {
+  return join_('.', arguments);
+};
+
+/**
+ *  Join by dashes.
+ */
+sg.dashed = function() {
+  return join_('-', arguments);
+};
+
+/**
+ *  Change dots into dashes.
+ */
+sg.dashifyKey = function(key) {
+  return key.replace(/\./g, '-');
+};
+
+/**
+ *  Is the value in the list-as-a-sting.
+ *
+ *  strList : 'a,foo,barbaz'
+ *  value   : 'a'
+ *
+ *  Must do ',a,foo,barbaz,'.indexOf(...)
+ */
+sg.inList = function(strList, value, sep_) {
+  var sep = sep_ || ',';
+
+  var surrounded = sep + strList + sep;
+  return surrounded.indexOf(sep + value + sep) !== -1;
+};
+
+/**
+ *  Makes the key a valid identifier (letter, digit, or underscore).
+ */
+sg.cleanKey = function(key) {
+  return key.replace(/[^a-zA-Z0-9_]/g, '_');
+};
+
+var capitalizeFirstLetter = sg.capitalizeFirstLetter = function(s) {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+};
+
+/**
+ *  Returns the snake-case version of the string.
+ *
+ *  instance-type --> instance_type
+ */
+var toSnakeCase = sg.toSnakeCase = function(key) {
+  var parts = _.chain(key.split('.')).map(function(x) { return x.split(/[-_]/g); }).flatten().value();
+  return parts.join('_');
+};
+
+/**
+ *  Returns the dot.case version of the string.
+ *
+ *  instance_type --> instance.type
+ */
+var toDotCase = sg.toDotCase = function(key) {
+  var parts = _.chain(key.split('.')).map(function(x) { return x.split(/[-_]/g); }).flatten().value();
+  return parts.join('.');
+};
+
+/**
+ *  Returns the dash-case version of the string.
+ *
+ *  instance_type --> instance-type
+ */
+var toDashCase = sg.toDashCase = function(key) {
+  var parts = _.chain(key.split('.')).map(function(x) { return x.split(/[-_]/g); }).flatten().value();
+  return parts.join('-');
+};
+
+/**
+ *  Returns the camel-case version of the string.
+ *
+ *  instance_type --> instanceType
+ *  instance-type --> instanceType
+ */
+var toCamelCase = sg.toCamelCase = function(key) {
+  var parts = _.chain(key.split('.')).map(function(x) { return x.split(/[-_]/g); }).flatten().value();
+  var result  = parts.shift();
+
+  _.each(parts, function(s) {
+    result += capitalizeFirstLetter(s);
+  });
+
+  return result;
+};
+
+/**
+ *  Returns the CapitalCase version of the string.
+ *
+ *  instance_type --> InstanceType
+ *  instance-type --> InstanceType
+ */
+var toCapitalCase = sg.toCapitalCase = function(key) {
+  return capitalizeFirstLetter(toCamelCase(key));
+};
+
+/**
+ *  Makes x the right type.
+ */
+var smartValue = sg.smartValue = function(value) {
+  if (_.isString(value)) {
+    if (/^[0-9]+$/.exec(value)) { return parseInt(value, 10); }
+    if (value === 'true')       { return true; }
+    if (value === 'false')      { return false; }
+  }
+
+  return value;
+};
+
+// Makes the attributes on a data object be the 'right' type (like '0' -> the number zero)
+var smartAttrs = sg.smartAttrs = function(obj) {
+  return _.reduce(obj, function(m, value, key) {
+    if (_.isString(value) && /^[0-9]+$/.exec(value)) {
+      return sg.kv(m, key, parseInt(value, 10));
+    }
+    return sg.kv(m, key, value);
+  }, {});
+};
+
+// Ask for the dash-case or snake_case or identifier.case name, get those or camelCase
+var argvGet = sg.argvGet = function(argv, names_) {
+  var i, name, names = names_.split(',');
+
+  for (i = 0; i < names.length; i += 1) {
+    if ((name = names[i]) in argv)                  { return sg.smartValue(argv[name]); }
+    if ((name = toDashCase(names[i])) in argv)      { return sg.smartValue(argv[name]); }
+    if ((name = toSnakeCase(names[i])) in argv)     { return sg.smartValue(argv[name]); }
+    if ((name = toCamelCase(names[i])) in argv)     { return sg.smartValue(argv[name]); }
+    if ((name = toCapitalCase(names[i])) in argv)   { return sg.smartValue(argv[name]); }
+    if ((name = toDotCase(names[i])) in argv)       { return sg.smartValue(argv[name]); }
+  }
+
+};
+
+/**
+ *  Returns the value, but also removes it.
+ */
+var argvExtract = sg.argvExtract = function(argv, names_) {
+  var i, name, names = names_.split(',');
+
+  for (i = 0; i < names.length; i += 1) {
+    if ((name = names[i]) in argv)                  { return sg.smartValue(sg.extract(argv, name)); }
+    if ((name = toDashCase(names[i])) in argv)      { return sg.smartValue(sg.extract(argv, name)); }
+    if ((name = toSnakeCase(names[i])) in argv)     { return sg.smartValue(sg.extract(argv, name)); }
+    if ((name = toCamelCase(names[i])) in argv)     { return sg.smartValue(sg.extract(argv, name)); }
+    if ((name = toCapitalCase(names[i])) in argv)   { return sg.smartValue(sg.extract(argv, name)); }
+    if ((name = toDotCase(names[i])) in argv)       { return sg.smartValue(sg.extract(argv, name)); }
+  }
+
+};
+
+/**
+ *  _.pick for ARGV args.
+ */
+sg.argvPick = function(argv, names_) {
+  var i, name, names = names_;
+
+  if (_.isString(names)) {
+    names = names_.split(',');
+  }
+
+  var result = {};
+  for (i = 0; i < names.length; i += 1) {
+    if ((name = names[i]) in argv)                  { result[name] = sg.smartValue(argv[name]); }
+    if ((name = toDashCase(names[i])) in argv)      { result[name] = sg.smartValue(argv[name]); }
+    if ((name = toSnakeCase(names[i])) in argv)     { result[name] = sg.smartValue(argv[name]); }
+    if ((name = toCamelCase(names[i])) in argv)     { result[name] = sg.smartValue(argv[name]); }
+    if ((name = toCapitalCase(names[i])) in argv)   { result[name] = sg.smartValue(argv[name]); }
+    if ((name = toDotCase(names[i])) in argv)       { result[name] = sg.smartValue(argv[name]); }
+  }
+
+  return result;
+};
+
+/**
  *  Build {k:v}, but do not set the value if k or v are undefined/null.
  *
  *  This allows passing in undefined, and getting the original object
@@ -139,6 +321,62 @@ var kvSmart = sg.kvSmart = function(o, k, v) {
   }
 
   return o;
+};
+
+/**
+ *  Gets a sub-sub-key.
+ */
+var deref = sg.deref = function(x, keys_) {
+  if (isnt(x))      { return /* undefined */; }
+  if (isnt(keys_))  { return /* undefined */; }
+
+  var keys    = _.isArray(keys_) ? keys_ : keys_.split('.'), key;
+  var result  = x;
+
+  while (keys.length > 0) {
+    key = keys.shift();
+    if (!(result = result[key])) {
+      // We got a falsy result.  If this was the last item, return it (so, for example
+      // we would return a 0 (zero) if looked up.
+      if (keys.length === 0) { return result; }
+
+      /* otherwise -- return undefined */
+      return /* undefined */;
+    }
+  }
+
+  return result;
+};
+
+/**
+ *  Sets sub-sub-key of object, and always returns the passed-in value.
+ *
+ *  setOnn(x, 'foo.bar.baz', 42)
+ *
+ *  x = {foo:{bar:{baz:42}}}
+ *
+ *  Does not set the sub-object if value is undefined. This allows:
+ *
+ *      // if abc is not set on  options, x.foo.bar.baz does not get set
+ *      setOn(x, 'foo.bar.baz', options.abc);
+ */
+var setOnn = sg.setOnn = function(x, keys_, value) {
+  if (isnt(x) || isnt(keys_) || isnt(value)) { return value; }
+
+  var keys  = _.isArray(keys_) ? keys_ : keys_.split('.');
+  var owner = x, key;
+
+  while (keys.length > 1) {
+    key = keys.shift();
+    owner[key] = owner[key] || {};
+    owner = owner[key];
+  }
+
+  if ((key = keys.shift())) {
+    owner[key] = value;
+  }
+
+  return value;
 };
 
 /**
@@ -216,7 +454,36 @@ sg.extracts = function(collection /*, names... */) {
   return result;
 };
 
-sg.extend
+sg.shallowCopy = function(x) {
+  var result;
+
+  if (_.isArray(x)) {
+    return Array.prototype.slice.apply(x);
+  } else if (_.isObject(x)) {
+    result = {};
+    _.each(x, function(value, key) {
+      result[key] = value;
+    });
+    return result;
+  }
+
+  return x;
+};
+
+/**
+ *  Make a clean object (all attrs are POD).
+ */
+sg.cleanCopy = function(obj) {
+  var result = {}, keys = _.keys(obj);
+
+  _.each(keys, function(key) {
+    if (isPod(obj[key])) {
+      result[key] = obj[key];
+    }
+  });
+
+  return result;
+};
 
 var safeJSONParse = sg.safeJSONParse = function(str, def) {
   if (str !== '') {

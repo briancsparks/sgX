@@ -490,7 +490,7 @@ var safeJSONParse = sg.safeJSONParse = function(str, def) {
     try {
       return JSON.parse(str);
     } catch(err) {
-      verbose(4, "Error parsing JSON", str, err);
+      console.error("Error parsing JSON", str, err);
     }
   }
 

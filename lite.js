@@ -7,6 +7,15 @@ var _   = require('underscore');
 var sg  = {};
 
 /**
+ *  Returns if the program is running in production.
+ *
+ *  @alias module:sgsg.isProduction
+ */
+sg.isProduction = function() {
+  return process.env.NODE_ENV === 'production';
+};
+
+/**
  *  Returns if the program is running in debug mode.
  *
  *  @alias module:sgsg.isDebug

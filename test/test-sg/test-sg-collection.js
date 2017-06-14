@@ -9,3 +9,4 @@ test('pad(): pads zeros', function(t) {
 
   t.is(s, '001');
 });
+

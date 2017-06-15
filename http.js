@@ -216,6 +216,18 @@ sg.normlz = function(url) {
   return result;
 };
 
+/**
+ *  Uses the "best" protcol (http or https) for the current situation.
+ */
+sg.httpProto = function(proto) {
+  if (proto)                { return proto; }       // Allows to pass in var that is usually null or undefined
+
+  if (sg.isProduction())    { return 'https'; }
+  if (sg.isDebug())         { return 'http'; }
+
+  return 'http';
+};
+
 _.each(sg, function(value, key) {
   exports[key] = value;
 });

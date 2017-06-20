@@ -191,32 +191,6 @@ var getRawBody = function(req, callback) {
 };
 
 /**
- *  Normalize a URL.
- *
- *  When manipulating URLs, many times you will end up with double slashes. This function
- *  will normalize URLs that have been built this way.
- */
-sg.normlz = function(url) {
-  var protocol = '';
-  var pathname = url;
-
-  var m = /^((http|https):[/][/])(.*)$/.exec(url);
-
-  if (m) {
-    protocol = m[1];
-    pathname = m[3];
-  }
-
-  // '//' ->> '/'
-  while (pathname.indexOf('//') !== -1) {
-    pathname  = pathname.replace(/[/][/]/g, '/');
-  }
-
-  var result = protocol + pathname;
-  return result;
-};
-
-/**
  *  Uses the "best" protcol (http or https) for the current situation.
  */
 sg.httpProto = function(proto) {

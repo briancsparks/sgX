@@ -150,8 +150,8 @@ exports.load = function(sg, _) {
   };
 
   sg.jsonResponse = function(req, res, code, content_, headers_, debugInfo_) {
-    var content     = content_    || {code: code, msg: stringForHttpCode(code)};
-    var headers     = headers_    || {};
+    var content     = content_            || {code: code, msg: stringForHttpCode(code)};
+    var headers     = headers_            || {};
     var debugInfo   = null;
 
     if (process.env.NODE_ENV !== 'production') {
@@ -164,6 +164,9 @@ exports.load = function(sg, _) {
       content = mkResponseObject(code, content);
     }
 
+    // Remember the passed-in content
+    var origContent = sg.extend(content);
+
     if (_.isObject(content)) {
       if (debugInfo) {
         content.debug = debugInfo;
@@ -173,10 +176,10 @@ exports.load = function(sg, _) {
     }
 
     headers['Content-Type']   = headers['Content-Type'] || 'application/json';
-    headers['Content-Length'] = content.length;
+    headers['Content-Length'] = origContent.length;
 
-    if (code === 301 || code === 302) {
-      headers.Location = content.Location;
+    if ((code === 301 || code === 302) && origContent.Location) {
+      headers.Location = origContent.Location;
     }
 
     res.writeHead(code, headers);

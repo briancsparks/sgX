@@ -595,6 +595,14 @@ sg.mkVerbose = function(modName) {
 
 var verbose = sg.verbose = sg.mkVerbose('sg');
 
+var everbose = sg.everbose = function(level) {
+  if (level >= verbosity()) {
+    _.each(_.rest(arguments), function(arg) {
+      console.error(inspect(arg));
+    });
+  }
+};
+
 sg.mkLogger = function(argv) {
 
   var vLevel = 0;

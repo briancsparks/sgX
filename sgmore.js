@@ -176,7 +176,7 @@ exports.load = function(sg, _) {
     }
 
     headers['Content-Type']   = headers['Content-Type'] || 'application/json';
-    headers['Content-Length'] = origContent.length;
+    headers['Content-Length'] = content.length;
 
     if ((code === 301 || code === 302) && origContent.Location) {
       headers.Location = origContent.Location;

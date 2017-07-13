@@ -1080,7 +1080,12 @@ sg.httpRouteMatches = function(a /*, [fields], route*/) {
 sg.include = function(mod, dir) {
   var fs = sg.extlibs.fs;
 
-  var localPath = path.join(process.env.HOME, 'dev', mod);
+  var localPath = path.join(process.env.HOME, 'dev', 'briancsparks', mod);
+  if (fs.existsSync(path.join(localPath, 'package.json'))) {
+    return require(localPath);
+  }
+
+  localPath = path.join(process.env.HOME, 'dev', mod);
   if (fs.existsSync(path.join(localPath, 'package.json'))) {
     return require(localPath);
   }

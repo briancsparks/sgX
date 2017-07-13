@@ -13,6 +13,7 @@ var _             = require('underscore');
 var util          = require('util');
 var urlLib        = require('url');
 var assert        = require('assert');
+var path          = require('path');
 
 // Here I am :)
 var sg    = {extlibs:{_:_}};
@@ -1070,6 +1071,21 @@ sg.httpRouteMatches = function(a /*, [fields], route*/) {
   }
 
   return true;
+};
+
+/**
+ *  Require from a local copy, if it exists, otherwise return undefined so the
+ *  caller can sg.include('xyz') || require('xyz').
+ */
+sg.include = function(mod, dir) {
+  var fs = sg.extlibs.fs;
+
+  var localPath = path.join(process.env.HOME, 'dev', mod);
+  if (fs.existsSync(path.join(localPath, 'package.json'))) {
+    return require(localPath);
+  }
+
+  return /* undefined */;
 };
 
 sg = require('./sgargv').load(sg, _);

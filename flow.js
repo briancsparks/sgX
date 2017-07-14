@@ -3,8 +3,11 @@
  *  Flow control stuff.
  */
 
-var _   = require('underscore');
-var sg  = {};
+var _         = require('underscore');
+var sg        = {};
+var sglite    = require('./lite');
+
+var isnt      = sglite.isnt;
 
 /**
  *  Was the callback called to mean a good result? (Are the results OK?)

@@ -42,6 +42,24 @@ sg = _.extend({}, sg, require('./flow'));
 // Get functions from http.js
 sg = _.extend({}, sg, require('./http'));
 
+var sgConfig_;
+var sgConfig = function() {
+  var fs = require('fs');
+
+  // If we have it, return it
+  if (sgConfig_)  { return sgConfig_; }
+
+  var configFilename = path.join(process.env.HOME, '.sgsg', 'config.json');
+  var stats = fs.statSync(configFilename);
+  if (stats.isFile()) {
+    var content = fs.readFileSync(configFilename, {encoding:'utf8'});
+    return (sgConfig_ = sg.safeJSONParse(content, {}));
+  }
+
+  return (sgConfig_ = {});
+};
+sg.config = sgConfig;
+
 sg.timeBetween = function(a_, b_) {
   var a     = _.isDate(a) ? a.getTime() : a;
   var b     = _.isDate(b) ? b.getTime() : b;
@@ -1080,14 +1098,17 @@ sg.httpRouteMatches = function(a /*, [fields], route*/) {
 sg.include = function(mod, dir) {
   var fs = sg.extlibs.fs;
 
-  var localPath = path.join(process.env.HOME, 'dev', 'briancsparks', mod);
-  if (fs.existsSync(path.join(localPath, 'package.json'))) {
-    return require(localPath);
-  }
+  var i;
+  var config      = sgConfig();
+  var includePath = config.includePath || [];
 
-  localPath = path.join(process.env.HOME, 'dev', mod);
-  if (fs.existsSync(path.join(localPath, 'package.json'))) {
-    return require(localPath);
+  includePath.push(path.join(process.env.HOME, 'dev'));
+
+  for (i=0; i<includePath.length; ++i) {
+    var localPath = path.join(includePath[i], mod);
+    if (fs.existsSync(path.join(localPath, 'package.json'))) {
+      return require(localPath);
+    }
   }
 
   return /* undefined */;

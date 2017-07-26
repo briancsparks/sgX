@@ -1,6 +1,6 @@
 {
   "name": "sgsg",
-  "version": "0.9.14",
+  "version": "0.9.15",
   "description": "All the best functional JS in one easy, consistent place.",
   "main": "sg.js",
   "bin": {

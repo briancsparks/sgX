@@ -427,7 +427,7 @@ sg.startsWith = function(longStr, start) {
 sg.parseOn2Chars = function(str, sep1, sep2) {
   var ret = {};
   _.each(str.split(sep1), function(kv) {
-    var arr = kv.split(sep2), k = arr[0], v = arr[1] || true;
+    var arr = kv.split(sep2), k = arr[0], v = arr[1] || '';
     if (k && v) {
       ret[k] = v;
     }

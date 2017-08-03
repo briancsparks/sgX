@@ -462,7 +462,7 @@ sg.pad = function(val, len, sep_) {
   return str;
 };
 
-sg.lpad = function(val, len, sep_) {
+var lpad = sg.lpad = function(val, len, sep_) {
   var sep = sep_;
   if (!sep) {
     if (_.isNumber(val))  { sep = '0'; }
@@ -886,7 +886,6 @@ sg.str2lines = function(remainder_, chunk /*, options, fn */) {
  *     if (!projectId) { return u.sage('project-id', 'Gotta have a project.', callback); }
  *
  */
-var lpad = sg.lpad;
 sg.prepUsage = function() {
 
   return mkU();

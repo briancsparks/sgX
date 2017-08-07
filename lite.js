@@ -32,6 +32,13 @@ var weeks   = sg.weeks   = sg.week   = 7*days,      week   = weeks;
 var months  = sg.months  = sg.month  = 30*days,     month  = months;
 var years   = sg.years   = sg.year   = 365*days,    year   = years;
 
+/**
+ *  Just like setTimeout, but with the parameters in the right order.
+ */
+sg.setTimeout = function(ms, cb) {
+  return setTimeout(cb, ms);
+};
+
 sg.firstKey = function(obj) {
   for (var k in obj) {
     return k;
@@ -623,4 +630,3 @@ sg.normlz = function(url) {
 _.each(sg, function(value, key) {
   exports[key] = value;
 });
-

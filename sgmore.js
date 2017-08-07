@@ -435,6 +435,148 @@ exports.load = function(sg, _) {
   };
 
   /**
+   *  A wrapper for sg.exec() with a simple callback signature:
+   *
+   *    * callback(err, stdoutLines)
+   *
+   *  * If the spawned process had an error of any kind, err will be info
+   *    on the error.
+   *  * stdoutLines will always be the stdout, split into lines.
+   */
+  sg.execEz = function(cmd, args /*, options, callback*/) {
+    var args_       = _.rest(arguments, 2);
+    var callback    = args_.pop() || lib.noop;
+    var options     = args_.pop() || null;
+    var ezOptions   = options     || {};
+
+    return sg.exec(cmd, args, options, function(error, exitCode, stdoutChunks, stderrChunks, signal) {
+      var stdout  = (stdoutChunks || []).join('').split('\n');
+      var stderr  = (stderrChunks || []).join('');
+      var err     = {};
+
+      if (error)                { err.error     = error; }
+      if (signal)               { err.signal    = signal; }
+      if (exitCode !== 0)       { err.exitCode  = exitCode; }
+      if (stderr.length > 0)    { err.stderr    = stderr; }
+
+      if (sg.numKeys(err) !== 0) {
+        if (!ezOptions.quiet) {
+          sg.reportOutput(cmd+args.join(" "), error, exitCode, stdoutChunks, stderrChunks, signal);
+        }
+      } else {
+        err = null;
+      }
+
+      return callback(err, stdout);
+    });
+  };
+
+  /**
+   *  Makes a nice, usually compact, reporting of what sg.exec() outputs.
+   *
+   *  This function is intended to be used when you call sg.exec() on a utility / program
+   *  that produces a small amount of output. It works great for short bash scripts that
+   *  you write and invoke from your Node.js code -- when they are written to output a
+   *  short and sweet success message, or to send error info on stderr.
+   *
+   *    * Gives detailed info on any error information.
+   *    * Tries to condense stdout (if it is only one line, combines it.)
+   */
+  sg.reportOutput = function(msg_, error, exitCode, stdoutChunks, stderrChunks, signal) {
+
+    const msg         = sg.lpad(msg_+':', 50);
+    const stdoutLines = _.compact(stdoutChunks.join('').split('\n'));
+    const stderrLines = _.compact(stderrChunks.join('').split('\n'));
+
+    // Write the final status (exitCode, signal) first.
+    if (stdoutLines.length === 1) {
+      console.log(`${msg} exit: ${exitCode}, SIGNAL: ${signal}: ${stdoutLines[0]}`);
+    } else {
+      console.log(`${msg} exit: ${exitCode}, SIGNAL: ${signal}`);
+    }
+
+    // Then write any error objects
+    if (error) {
+      console.error(error);
+    }
+
+    // Then, write full stdout
+    if (stdoutLines.length === 1) {
+    } else {
+      _.each(stdoutLines, line => {
+        console.log(`${msg} ${line}`);
+      });
+    }
+
+    // Then write full stderr
+    const stderr = stderrChunks.join('');
+    if (stderr.length > 0) {
+      _.each(stderrLines, line => {
+        console.error(`${msg} ${line}`);
+      });
+    }
+  };
+
+  /**
+   *
+   */
+  sg.getMacAddress = function(callback) {
+    if (sg.macAddress_) { return callback(null, sg.macAddress_); }
+
+    var currInterface, ifaceStats, currIfaceStats = {}, m, value;
+    return sg.execEz('ifconfig', [], {}, function(err, lines) {
+      _.each(lines, function(line, lineNum) {
+        if ((m = line.match(/^([a-z0-9]+):\s*(.*)$/i))) {
+          // Are we starting a new section for the interface?
+          if (currInterface) {
+            // We are on a line that starts an interface, but we are still remembering the previous interface
+            analyzeStats();
+          }
+
+          currInterface   = m[1];
+          currIfaceStats  = {ifaceName: currInterface};
+          line            = m[2];
+        }
+
+        // Some options are [key: value]; some are [key value]; some are [key=value]
+        if ((m = line.match(/([a-z0-9_]+)(:|=)?\s*(.*)$/i))) {
+          value = m[3];
+          if (m[1] === 'ether') {
+            value = value.replace(/\s*/g, '');
+          }
+          currIfaceStats[m[1]] = value;
+        }
+      });
+
+      analyzeStats();
+      sg.macAddress_ = ifaceStats.ether || sg.macAddress_;
+
+      return callback(null, sg.macAddress_);
+    });
+
+    function analyzeStats() {
+      if (currIfaceStats.status !== 'active')                                   { return; }
+      if (!currIfaceStats.inet)                                                 { return; }
+      if (!currIfaceStats.ether.match(/^([a-f0-9]{2}[:]){5}[a-f0-9]{2}$/i))     { return; }
+
+      // Is our new stats better than one we already have?
+      if (!ifaceStats) {
+        ifaceStats = sg.deepCopy(currIfaceStats);
+      } else if (currIfaceStats.ether > ifaceStats.ether) {
+        ifaceStats = sg.deepCopy(currIfaceStats);
+      }
+    }
+  };
+  sg.macAddress_ = null;
+
+  /**
+   *
+   */
+  sg.getHardwareId = function(callback) {
+    return sg.getMacAddress(callback);
+  };
+
+  /**
    *  Writes the array of chunks to a file.
    *
    *  @alias module:sgsg.writeChunks
@@ -505,4 +647,3 @@ exports.load = function(sg, _) {
 
   return sg;
 };
-

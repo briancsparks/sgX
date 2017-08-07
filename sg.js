@@ -1,9 +1,5 @@
 
 /**
- *  sg!
- */
-
-/**
  *  sg
  *
  *  @module sgsg
@@ -35,6 +31,7 @@ var safeJSONParse   = sg.safeJSONParse;
 var smartAttrs      = sg.smartAttrs;
 var smartValue      = sg.smartValue;
 var extend          = sg.extend;
+var sgSetTimeout    = sg.setTimeout;
 
 // Get functions from flow.js
 sg = _.extend({}, sg, require('./flow'));
@@ -573,6 +570,17 @@ var inspectFlat = sg.inspectFlat = function(x) {
   return sg.inspect(x).replace(/ *\n */g, ' ');
 };
 
+sg.dbgReport = function(err) {
+  console.error('--------------------------------------------------------------------');
+  console.error('  dbgReport, numArgs: ', arguments.length);
+  console.error('  err: ', sg.inspect(err));
+
+  _.each(_.rest(arguments), function(arg, num) {
+    console.error('  arg'+num, sg.inspect(arg));
+  });
+  console.error('--------------------------------------------------------------------');
+};
+
 var verbosity = sg.verbosity = function() {
 
   var vLevel = 0;
@@ -694,16 +702,30 @@ sg.bigFatError = function(err, message, halt) {
   return err;
 };
 
+function SgError(message) {
+  this.name  = 'SgError';
+  this.stack = (new Error()).stack;
+
+  if (_.isString(message) && message.startsWith('ENO')) {
+    this.name     = _.first(message.split(/[^a-z0-9]/i));
+    this.message  = message || 'Default Message';
+  } else {
+    this.message  = message || 'Default Message';
+  }
+}
+SgError.prototype = Object.create(Error.prototype);
+SgError.prototype.constructor = SgError;
+
 var toError = sg.toError = function(e) {
   if (e instanceof Error)     { return e; }
-  if (_.isString(e))          { return new Error(e); }
+  if (_.isString(e))          { return new SgError(e); }
   if (_.isArray(e))           { return new Error(JSON.stringify(e)); }
 
   if (_.isObject(e)) {
-    if (_.isString(e.error))  { return new Error(e.error); }
-    if (_.isString(e.Error))  { return new Error(e.Error); }
-    if (_.isString(e.err))    { return new Error(e.err); }
-    if (_.isString(e.Err))    { return new Error(e.Err); }
+    if (_.isString(e.error))  { return new SgError(e.error); }
+    if (_.isString(e.Error))  { return new SgError(e.Error); }
+    if (_.isString(e.err))    { return new SgError(e.err); }
+    if (_.isString(e.Err))    { return new SgError(e.Err); }
   }
 
   if (e === null)             { return e; }
@@ -1205,4 +1227,3 @@ if (process.argv[1] === __filename) {
     test();
   });
 }
-

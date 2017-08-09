@@ -413,6 +413,17 @@ sg.mkSet = function(coll, sep) {
 };
 
 /**
+ *  Treats arr as a set (no duplicate entries), and adds the item if
+ *  it is not already present.
+ */
+sg.addToSet = function(item, arr) {
+  if (arr.indexOf(item) !== -1) { return arr; }
+
+  arr.push(item);
+  return arr;
+};
+
+/**
  *  Returns if x is within the comma-delimited set of strings.
  */
 sg.inSet = function(x, theSet_, sep) {

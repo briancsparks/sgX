@@ -738,10 +738,18 @@ var reportError = sg.reportError = function(e, message) {
   if (!e) { return; }
 
   var result = toError(e);
+  var msg    = '';
+
+  if (_.isString(e)) {
+    msg += e+' at ';
+  }
 
   if (message) {
-    process.stderr.write(message);
-    process.stderr.write(': ');
+    msg += message+': ';
+  }
+
+  if (msg) {
+    process.stderr.write(msg);
   }
 
   console.error(result);
@@ -1029,6 +1037,28 @@ var die = sg.die = function(a,b,c) {
   }
 
   process.exit(a);
+};
+
+/**
+ *  If your function is going to fail, and you want to be loud about it,
+ *  but only in active development, use fail(). Has signature like die().
+ *
+ *  For example, when checking function parameters, you want to inform the
+ *  caller of their problem.
+ */
+var fail = sg.fail = function(a,b,c) {
+
+  if (process.env.SG_FAIL) {
+    if (arguments.length === 1)       { sg.reportError(a); return; }
+
+    sg.reportError(a, c);
+    return b(a);
+  }
+
+  if (arguments.length === 1)       { console.error(a); return; }
+
+  console.error(a+' at '+(c || ''));
+  return b(a);
 };
 
 sg.mkFailFn = function(callback) {

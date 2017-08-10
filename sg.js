@@ -39,6 +39,8 @@ sg = _.extend({}, sg, require('./flow'));
 // Get functions from http.js
 sg = _.extend({}, sg, require('./http'));
 
+var chalk;
+
 var sgConfig_;
 var sgConfig = function() {
   var fs = require('fs');
@@ -1112,8 +1114,6 @@ sg.ok = function(err /*, [argN]*/) {
   return result;
 };
 
-sg = _.extend(sg, require('./flow'));
-
 /**
  *  Invoke a function for each item in a second-level array.
  *
@@ -1246,6 +1246,8 @@ sg.exportify = function(theModule, mod) {
 
 sg = require('./sgext').load(sg, _);
 sg = require('./sgmore').load(sg, _);
+
+chalk = sg.extlibs.chalk;
 
 _.each(sg, function(fn, name) {
   exports[name] = sg[name];

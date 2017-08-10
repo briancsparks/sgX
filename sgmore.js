@@ -481,40 +481,49 @@ exports.load = function(sg, _) {
    *
    *    * Gives detailed info on any error information.
    *    * Tries to condense stdout (if it is only one line, combines it.)
+   *
+   *  Returns a 2-tuple: [err, stdout-as-one-big-string]
+   *
    */
   sg.reportOutput = function(msg_, error, exitCode, stdoutChunks, stderrChunks, signal) {
 
-    const msg         = sg.lpad(msg_+':', 50);
     const stdoutLines = _.compact(stdoutChunks.join('').split('\n'));
-    const stderrLines = _.compact(stderrChunks.join('').split('\n'));
 
-    // Write the final status (exitCode, signal) first.
-    if (stdoutLines.length === 1) {
-      console.log(`${msg} exit: ${exitCode}, SIGNAL: ${signal}: ${stdoutLines[0]}`);
-    } else {
-      console.log(`${msg} exit: ${exitCode}, SIGNAL: ${signal}`);
+    if (msg_ !== null) {
+      const msg         = sg.lpad(msg_+':', 50);
+      const stderrLines = _.compact(stderrChunks.join('').split('\n'));
+
+      // Write the final status (exitCode, signal) first.
+      if (stdoutLines.length === 1) {
+        console.log(`${msg} exit: ${exitCode}, SIGNAL: ${signal}: ${stdoutLines[0]}`);
+      } else {
+        console.log(`${msg} exit: ${exitCode}, SIGNAL: ${signal}`);
+      }
+
+      // Then write any error objects
+      if (error) {
+        console.error(error);
+      }
+
+      // Then, write full stdout
+      if (stdoutLines.length === 1) {
+      } else {
+        _.each(stdoutLines, line => {
+          console.log(`${msg} ${line}`);
+        });
+      }
+
+      // Then write full stderr
+      const stderr = stderrChunks.join('');
+      if (stderr.length > 0) {
+        _.each(stderrLines, line => {
+          console.error(`${msg} ${line}`);
+        });
+      }
     }
 
-    // Then write any error objects
-    if (error) {
-      console.error(error);
-    }
-
-    // Then, write full stdout
-    if (stdoutLines.length === 1) {
-    } else {
-      _.each(stdoutLines, line => {
-        console.log(`${msg} ${line}`);
-      });
-    }
-
-    // Then write full stderr
-    const stderr = stderrChunks.join('');
-    if (stderr.length > 0) {
-      _.each(stderrLines, line => {
-        console.error(`${msg} ${line}`);
-      });
-    }
+    var err = (exitCode !== 0 ? `NONZEROEXIT:${exitCode}` : (signal ? `SIG${signal}` : error));
+    return [err, stdoutLines];
   };
 
   /**

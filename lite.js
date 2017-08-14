@@ -109,6 +109,24 @@ var dottedKv = sg.dottedKv = function(o, k, v) {
 };
 
 /**
+ *  Makes an object where the key for each item is the same as the value.
+ */
+sg.keyMirror = function(x, sep) {
+  var result = {};
+
+  if (_.isString(x))      { return sg.keyMirror(x.split(sep || ',')); }
+  if (sg.isObject(x))     { return sg.keyMirror(_.keys(x)); }
+
+  if (!_.isArray(x))      { return result; }
+
+  _.each(x, function(item) {
+    result[item] = item;
+  });
+
+  return result;
+};
+
+/**
  *  Is the parameter strictly an Object (and not an Array, or Date, or ...).
  */
 var isObject = sg.isObject = function(x) {

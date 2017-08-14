@@ -160,6 +160,11 @@ exports.load = function(sg, _) {
       }
     }
 
+    // No debug for any permission denied code
+    if (code === 401 || code === 403) {
+      debugInfo = null;
+    }
+
     if (_.isString(content)) {
       content = mkResponseObject(code, content);
     }

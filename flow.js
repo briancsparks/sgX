@@ -215,6 +215,102 @@ sg.__run = function(a, b) {
   );
 };
 
+var _pushm = function(m, x) {
+  m.push(x);
+  return m;
+};
+
+/**
+ *  Runs a list of Node.js-style functions synchronously.
+ *
+ *  This is a version of __run() that has a couple of extra features for typical handlers.
+ *
+ *  * Passes a `self` parameter that can be used to share data/state between the functions.
+ *    Works great to accumulate the function's result.
+ *  * Provides the finalization function to each function, so it can be called at any point.
+ *  * Provides two finalization functions, intending one for normal/success results, and one
+ *    for errors.
+ *  * Very flexible parameter signature. Detects each param by its type. The only constraints
+ *    are that `self` must be first, if provided; and that `abort` comes after `last`.
+ *
+ *  This function was built for two specific use-cases that occur a lot. It allows to provide
+ *  a `main` function first in the list, to improve readability; and allows `callback` to be
+ *  passed in (usually before the functions), and then calling `last` or `abort` in any function
+ *  is really calling `callback`.
+ *
+ *  If the last function in the Array calls `next()` (which is very typical), then last will
+ *  be called as `last(null, self)`. This is obviously to facilitate using `callback` as `last`.
+ *  If you do not want `self` to be passed automatically like this, pass your object in double-
+ *  wrapped in Arrays: `[[{}]]`. The wrapping Arrays are just decoration, and will be removed
+ *  before anything is done with `self`.
+ *
+ *  @param {Object} self    - An object passed to each function. Makes it easy for the functions
+ *                            to share state/data. Must be the first parameter. If it is not supplied
+ *                            __run2() will provide `{}`, and pass as the _last_ parameter to each
+ *                            of the functions. If provided, it is passed as the first parameter.
+ *  @param {function[]} fns - An Array of functions to be run on after the other.
+ *  @param {function} last  - The last function to be run. This is a separate function outside the
+ *                            Array of functions. It may be provided in any location in the parameter
+ *                            list.
+ *  @param {function} abort - A separate function to be used as a final function. If not provided, will
+ *                            be a copy of `last`. To skip providing a function, but to have `abort` not
+ *                            be a copy of `last`, pass `false`. `abort` will always put a truthy
+ *                            value in the first parameter (using `'aborted'` as a default.) This
+ *                            allows you to just `return abort();` in any function.
+ */
+sg.__run2 = function(a,b,c,d) {   // self, fns, last, abort
+  // Figure out params
+  var args = _.toArray(arguments);
+  var self,fns,last,abort,privateSelf,noSelf;
+
+  // self can only be the first param, if not, use a blank Object
+  self          = sg.isObject(args[0]) && args.shift();
+  privateSelf   = !self;                                  // If self is undefined here, it is potentially a private-self
+
+  self          = self || _.isArray(args[0]) && args[0].length === 1 && _.isArray(args[0][0]) && args[0][0].length === 1 && args[0][0][0];
+  privateSelf   = privateSelf && !!self;                  // But if self wasn't set by [[...]], it is not private-self
+
+  noSelf        = !self;
+  self          = self || {};
+
+  // Fns is the only Array
+  args = _.filter(args, function(arg) { return fns || !(fns = _.isArray(arg) && arg); });
+
+  // last is the first function
+  args = _.filter(args, function(arg) { return last || !(last = _.isFunction(arg) && arg); });
+
+  // any remaining arg has to be abort
+  abort = args.shift();
+
+  // Any of them can be unset
+  fns   = fns || [];
+  last  = last || function(){};
+
+  if (abort === false)  { abort = function(){}; }
+  else                  { abort = abort || last; }
+
+  abort = function(err) {
+    return abort(err || 'aborted');
+  };
+
+  return sg.__each(
+    fns,
+    function(fn, next, index, coll) {
+      if (noSelf) {
+        return fn(next, last, abort, self);
+      }
+      return fn(self, next, last, abort);
+    },
+    function(a,b) {
+      if (privateSelf) {
+        return last.apply(this, arguments);
+      }
+
+      return last(null, self);
+    }
+  );
+};
+
 /**
  *  Calls fn until it wants to quit
  */

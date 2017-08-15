@@ -8,6 +8,7 @@ var sg        = {};
 var sglite    = require('./lite');
 
 var isnt      = sglite.isnt;
+var isObject  = sglite.isObject;
 
 /**
  *  Was the callback called to mean a good result? (Are the results OK?)
@@ -264,7 +265,7 @@ sg.__run2 = function(a,b,c,d) {   // self, fns, last, abort
   var self,fns,last,abort,privateSelf,noSelf;
 
   // self can only be the first param, if not, use a blank Object
-  self          = sg.isObject(args[0]) && args.shift();
+  self          = isObject(args[0]) && args.shift();
   privateSelf   = !self;                                  // If self is undefined here, it is potentially a private-self
 
   self          = self || _.isArray(args[0]) && args[0].length === 1 && _.isArray(args[0][0]) && args[0][0].length === 1 && args[0][0][0];

@@ -605,8 +605,13 @@ var logFn = function() {
 
 // Wrap the log fn
 (function() {
+
   var oldLogFn = logFn;
   logFn = function() {
+
+    // But not if we have zero verbosity.
+    if (verbosity() <= 0) { return; }
+
     return oldLogFn.apply(oldLogFn, _.map(arguments, function(arg) {
       return inspect(arg);
     }));

@@ -565,6 +565,10 @@ sg.lines = function(lines) {
 };
 
 var inspect = sg.inspect = function(x) {
+  if (sg.verbosity() < 2) {
+    return JSON.stringify(x);
+  }
+
   return util.inspect(x, {depth:null, colors:true});
 };
 

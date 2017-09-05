@@ -165,6 +165,11 @@ exports.load = function(sg, _) {
       debugInfo = null;
     }
 
+    // If debugInfo_ came in as null, make sure no debug info
+    if (debugInfo_ === null) {
+      debugInfo = null;
+    }
+
     if (_.isString(content)) {
       content = mkResponseObject(code, content);
     }

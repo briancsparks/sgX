@@ -109,10 +109,24 @@ var dottedKv = sg.dottedKv = function(o, k, v) {
 };
 
 /**
+ *  Returns the keys of an object.
+ *
+ *  Just like _.keys, except it will return null or undefined if given an
+ *  input that isnt().
+ */
+sg.keys = function(x) {
+  if (isnt(x))            { return x; }
+
+  return _.keys(x);
+};
+
+/**
  *  Makes an object where the key for each item is the same as the value.
  */
 sg.keyMirror = function(x, sep) {
   var result = {};
+
+  if (isnt(x))            { return x; }
 
   if (_.isString(x))      { return sg.keyMirror(x.split(sep || ',')); }
   if (sg.isObject(x))     { return sg.keyMirror(_.keys(x)); }
@@ -482,8 +496,10 @@ sg.reduce = sg._reduce = function(collection, initial, fn) {
   return _.reduce(collection, fn, initial);
 };
 
-sg.extract = sg._extract = function(collection, name) {
-  var value = collection[name];
+sg.extract = sg._extract = function(collection_, name) {
+  var collection  = collection_ || {};
+  var value       = collection[name];
+
   delete collection[name];
   return value;
 };

@@ -140,7 +140,7 @@ sg.getBody = function(req, callback) {
 
   var onEnd = function() {
 
-    req.bodyJson = req.bodyJson || sglite.safeJSONParse(req.chunks.join(''));
+    req.bodyJson = req.bodyJson || sglite.safeJSONParseQuiet(req.chunks.join(''));
     req.bodyJson = sglite.smartAttrs(req.bodyJson);
 
     if (req.bodyJson.meta) {

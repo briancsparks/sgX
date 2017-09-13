@@ -558,6 +558,18 @@ var safeJSONParse = sg.safeJSONParse = function(str, def) {
   return arguments.length > 1 ? def : {};
 };
 
+var safeJSONParseQuiet = sg.safeJSONParseQuiet = function(str, def) {
+  if (str !== '') {
+    try {
+      return JSON.parse(str);
+    } catch(err) {
+      //console.error("Error parsing JSON", str, err);
+    }
+  }
+
+  return arguments.length > 1 ? def : {};
+};
+
 sg.deepCopy = function(x) {
   if (isnt(x)) { return x; }
   return sg.safeJSONParse(JSON.stringify(x));

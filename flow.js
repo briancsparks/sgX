@@ -262,7 +262,7 @@ var _pushm = function(m, x) {
 sg.__run2 = function(a,b,c,d) {   // self, fns, last, abort
   // Figure out params
   var args = _.toArray(arguments);
-  var self,fns,last,abort,privateSelf,noSelf;
+  var self,fns,last,abort_,abort,privateSelf,noSelf;
 
   // self can only be the first param, if not, use a blank Object
   self          = isObject(args[0]) && args.shift();
@@ -281,17 +281,19 @@ sg.__run2 = function(a,b,c,d) {   // self, fns, last, abort
   args = _.filter(args, function(arg) { return last || !(last = _.isFunction(arg) && arg); });
 
   // any remaining arg has to be abort
-  abort = args.shift();
+  abort_ = args.shift();
 
   // Any of them can be unset
   fns   = fns || [];
   last  = last || function(){};
 
-  if (abort === false)  { abort = function(){}; }
-  else                  { abort = abort || last; }
+  if (abort_ === false)  { abort_ = function(){}; }
+  else                   { abort_ = abort_ || last; }
 
   abort = function(err) {
-    return abort(err || 'aborted');
+    var args = _.rest(arguments);
+    args.unshift(err || 'aborted');
+    return abort_.apply(this, args);
   };
 
   return sg.__each(

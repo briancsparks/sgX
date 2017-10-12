@@ -603,6 +603,14 @@ var verbosity = sg.verbosity = function() {
   return vLevel;
 };
 
+var logInspect = function(x) {
+  return util.inspect(x, {depth:null, colors:true});
+};
+
+var logInspect1 = function(x) {
+  return JSON.stringify(x);
+};
+
 var logFn = function() {
   console.log.apply(console, arguments);
 };
@@ -613,8 +621,11 @@ var logFn = function() {
   var oldLogFn = logFn;
   logFn = function() {
 
+    var inspect = logInspect;
+
     // But not if we have zero verbosity.
     if (verbosity() <= 0) { return; }
+    if (verbosity() == 1) { inspect = logInspect1; }
 
     return oldLogFn.apply(oldLogFn, _.map(arguments, function(arg) {
       return inspect(arg);
@@ -624,7 +635,7 @@ var logFn = function() {
 
 sg.mkVerbose = function(modName) {
   return function(level /*, msg, options, ...*/) {
-    if (verbosity() >= level) {
+    if (verbosity() >= level || (verbosity() === 1 && level === 2)) {
       logFn(_.rest(arguments));
     }
   };

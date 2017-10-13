@@ -109,6 +109,22 @@ var dottedKv = sg.dottedKv = function(o, k, v) {
 };
 
 /**
+ *  Build [v]
+ *
+ *  Just like kv(), so you can return ap(m, 42) or ap(42)
+ */
+var ap = sg.ap = function(a, v) {
+  if (arguments.length === 1)   { return sg.ap(null, arguments[0]); }
+
+  a = a || [];
+
+  if (_.isUndefined(v))         { return a; }
+
+  a.push(v);
+  return a;
+};
+
+/**
  *  Returns the keys of an object.
  *
  *  Just like _.keys, except it will return null or undefined if given an
@@ -167,6 +183,13 @@ var isPod = sg.isPod = function(x) {
 
 var isnt = sg.isnt = function(x) {
   return _.isNull(x) || _.isUndefined(x);
+};
+
+var anyIsnt = sg.anyIsnt = function(argv) {
+  return sg.reduce(argv, false, (m, arg) => {
+    if (m !== false) { return m; }
+    return sg.isnt(arg);
+  });
 };
 
 /**
@@ -579,7 +602,10 @@ sg.deepCopy = function(x) {
  *  Just like _.extend, but does not mutate the 1st arg.
  */
 sg._extend = function() {
-  var args = _.toArray(arguments);
+  var args = sg.reduce(arguments, [], function(m, arg) {
+    return sg.ap(m, sg.isObject(arg) ? sg.smartAttrs(arg) : arg);
+  });
+
   args.unshift({});
   return _.extend.apply(_, args);
 };
@@ -647,16 +673,6 @@ var smartValue = sg.smartValue = function(value) {
   }
 
   return value;
-};
-
-// Makes the attributes on a data object be the 'right' type (like '0' -> the number zero)
-var smartAttrs = sg.smartAttrs = function(obj) {
-  return _.reduce(obj, function(m, value, key) {
-    if (_.isString(value) && /^[0-9]+$/.exec(value)) {
-      return sg.kv(m, key, parseInt(value, 10));
-    }
-    return sg.kv(m, key, value);
-  }, {});
 };
 
 /**

@@ -5,11 +5,12 @@
  *  @module sgsg
  */
 
-var _             = require('underscore');
-var util          = require('util');
-var urlLib        = require('url');
-var assert        = require('assert');
-var path          = require('path');
+var _                         = require('underscore');
+var util                      = require('util');
+var urlLib                    = require('url');
+var assert                    = require('assert');
+var path                      = require('path');
+var substackDeepEqual         = require('deep-equal');
 
 // Here I am :)
 var sg    = {extlibs:{_:_}};
@@ -57,6 +58,10 @@ var sgConfig = function() {
   return (sgConfig_ = {});
 };
 sg.config = sgConfig;
+
+var deepEqual = sg.deepEqual = function(a,b) {
+  return substackDeepEqual(a,b,{strict:true});
+};
 
 sg.timeBetween = function(a_, b_) {
   var a     = _.isDate(a) ? a.getTime() : a;

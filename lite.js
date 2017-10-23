@@ -6,6 +6,9 @@
 var _   = require('underscore');
 var sg  = {};
 
+// Forward declarations
+var isnt, anyIsnt;
+
 /**
  *  Returns if the program is running in production.
  *
@@ -181,11 +184,19 @@ var isPod = sg.isPod = function(x) {
   return false;
 };
 
-var isnt = sg.isnt = function(x) {
+/**
+ *  Returns true if the argument === null or === undefined.
+ *
+ */
+isnt = sg.isnt = function(x) {
   return _.isNull(x) || _.isUndefined(x);
 };
 
-var anyIsnt = sg.anyIsnt = function(argv) {
+/**
+ *  Returns true if any of the items in `argv` isnt().
+ *
+ */
+anyIsnt = sg.anyIsnt = function(argv) {
   return sg.reduce(argv, false, (m, arg) => {
     if (m !== false) { return m; }
     return sg.isnt(arg);
@@ -420,6 +431,21 @@ var deref = sg.deref = function(x, keys_) {
 };
 
 /**
+ *  Sets value on object (this is the workhorse for setOn, setOnn, setOnna.)
+ *
+ *  Returns the sanitized keys, or false.
+ */
+var _setOnIt = function(x, keys_, value) {
+  if (isnt(x) || isnt(keys_) || isnt(value))  { return false; }
+
+  var keys  = _.isArray(keys_) ? keys_ : keys_.split('.').map(function(x) {return x==='' ? null: x});
+
+  if (anyIsnt(keys))                          { return false; }
+
+  return keys;
+};
+
+/**
  *  Sets sub-sub-key of object, and always returns the passed-in value.
  *
  *  setOnn(x, 'foo.bar.baz', 42)
@@ -432,9 +458,78 @@ var deref = sg.deref = function(x, keys_) {
  *      setOn(x, 'foo.bar.baz', options.abc);
  */
 var setOnn = sg.setOnn = function(x, keys_, value) {
-  if (isnt(x) || isnt(keys_) || isnt(value)) { return value; }
+  var keys = _setOnIt(x, keys_, value);
+  if (keys === false)                       { return value; }
 
-  var keys  = _.isArray(keys_) ? keys_ : keys_.split('.');
+  var owner = x, key;
+
+  while (keys.length > 1) {
+    key = keys.shift();
+    owner[key] = owner[key] || {};
+    owner = owner[key];
+  }
+
+  if (!isnt(key = keys.shift())) {
+    owner[key] = value;
+  }
+
+  return value;
+};
+
+
+/**
+ *  Sets sub-sub-key of object as an array, and always returns the passed-in value.
+ *
+ *  setOnna(x, 'foo.bar.baz', 42)
+ *
+ *  x = {foo:{bar:{baz:[42]}}}
+ *
+ *  Does not set the sub-object if value is undefined. This allows:
+ *
+ *      // if abc is not set on  options, x.foo.bar.baz does not get set
+ *      setOn(x, 'foo.bar.baz', options.abc);
+ */
+var setOnna = sg.setOnna = function(x, keys_, value) {
+  var keys = _setOnIt(x, keys_, value);
+  if (keys === false)                       { return value; }
+
+  var owner = x, key;
+
+  while (keys.length > 1) {
+    key           = keys.shift();
+    if (isnt(owner[key])) {
+      owner[key]  = _.isNumber(keys[0]) ? [] : {};
+    }
+    owner         = owner[key];
+  }
+
+  if (!isnt(key = keys.shift())) {
+    owner[key] = owner[key] || [];
+    owner[key].push(value);
+  }
+
+  return value;
+};
+
+/**
+ *  Sets sub-sub-key of object, returns the value if it was successfuly
+ *  set, otherwise returns undefined.
+ *
+ *  The setOnn... variants always return the passed-in value.
+ *
+ *  setOn(x, 'foo.bar.baz', 42)
+ *
+ *  x = {foo:{bar:{baz:42}}}
+ *
+ *  Does not set the sub-object if value is undefined. This allows:
+ *
+ *      // if abc is not set on  options, x.foo.bar.baz does not get set
+ *      setOn(x, 'foo.bar.baz', options.abc);
+ */
+var setOn = sg.setOn = function(x, keys_, value) {
+  var keys = _setOnIt(x, keys_, value);
+  if (keys === false)                       { return; }
+
   var owner = x, key;
 
   while (keys.length > 1) {
@@ -445,9 +540,10 @@ var setOnn = sg.setOnn = function(x, keys_, value) {
 
   if ((key = keys.shift())) {
     owner[key] = value;
+    return owner[key];
   }
 
-  return value;
+  return;
 };
 
 /**

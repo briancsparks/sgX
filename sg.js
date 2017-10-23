@@ -27,6 +27,8 @@ var dottedKv        = sg.dottedKv;
 var isObject        = sg.isObject;
 var isPod           = sg.isPod;
 var isnt            = sg.isnt;
+var anyIsnt         = sg.anyIsnt;
+var deref           = sg.deref;
 var kvSmart         = sg.kvSmart;
 var safeJSONParse   = sg.safeJSONParse;
 var smartAttrs      = sg.smartAttrs;
@@ -156,130 +158,6 @@ var join_ = function(sep, parts) {
  */
 sg.join = function(sep /*, parts...*/) {
   return join_(sep, _.rest(arguments));
-};
-
-/**
- *  Gets a sub-sub-key.
- */
-var deref = sg.deref = function(x, keys_) {
-  if (isnt(x)) { return /* undefined */; }
-
-  var keys    = _.isArray(keys_) ? keys_ : keys_.split('.'), key;
-  var result  = x;
-
-  while (keys.length > 0) {
-    key = keys.shift();
-    if (!(result = result[key])) {
-      // We got a falsy result.  If this was the last item, return it (so, for example
-      // we would return a 0 (zero) if looked up.
-      if (keys.length === 0) { return result; }
-
-      /* otherwise -- return undefined */
-      return /* undefined */;
-    }
-  }
-
-  return result;
-};
-
-/**
- *  Sets sub-sub-key of object as an array, and always returns the passed-in value.
- *
- *  setOnn(x, 'foo.bar.baz', 42)
- *
- *  x = {foo:{bar:{baz:[42]}}}
- *
- *  Does not set the sub-object if value is undefined. This allows:
- *
- *      // if abc is not set on  options, x.foo.bar.baz does not get set
- *      setOn(x, 'foo.bar.baz', options.abc);
- */
-var setOnna = sg.setOnna = function(x, keys_, value) {
-  if (isnt(value)) { return value; }
-
-  var keys  = _.isArray(keys_) ? keys_ : keys_.split('.');
-  var owner = x, key;
-
-  while (keys.length > 1) {
-    key = keys.shift();
-    owner[key] = owner[key] || {};
-    owner = owner[key];
-  }
-
-  if ((key = keys.shift())) {
-    owner[key] = owner[key] || [];
-    owner[key].push(value);
-  }
-
-  return value;
-};
-
-/**
- *  Sets sub-sub-key of object, and always returns the passed-in value.
- *
- *  setOnn(x, 'foo.bar.baz', 42)
- *
- *  x = {foo:{bar:{baz:42}}}
- *
- *  Does not set the sub-object if value is undefined. This allows:
- *
- *      // if abc is not set on  options, x.foo.bar.baz does not get set
- *      setOn(x, 'foo.bar.baz', options.abc);
- */
-var setOnn = sg.setOnn = function(x, keys_, value) {
-  if (isnt(value)) { return value; }
-  if (isnt(keys_)) { return value; }
-
-  var keys  = _.isArray(keys_) ? keys_ : keys_.split('.');
-  var owner = x, key;
-
-  while (keys.length > 1) {
-    key = keys.shift();
-    owner[key] = owner[key] || {};
-    owner = owner[key];
-  }
-
-  if ((key = keys.shift())) {
-    owner[key] = value;
-  }
-
-  return value;
-};
-
-/**
- *  Sets sub-sub-key of object, returns the value if it was successfuly
- *  set, otherwise returns undefined.
- *
- *  The setOnn... variants always return the passed-in value.
- *
- *  setOn(x, 'foo.bar.baz', 42)
- *
- *  x = {foo:{bar:{baz:42}}}
- *
- *  Does not set the sub-object if value is undefined. This allows:
- *
- *      // if abc is not set on  options, x.foo.bar.baz does not get set
- *      setOn(x, 'foo.bar.baz', options.abc);
- */
-var setOn = sg.setOn = function(x, keys_, value) {
-  if (isnt(value)) { return; }
-  if (isnt(keys_)) { return; }
-
-  var keys  = _.isArray(keys_) ? keys_ : keys_.split('.');
-  var owner = x, key;
-
-  while (keys.length > 1) {
-    key = keys.shift();
-    owner[key] = owner[key] || {};
-    owner = owner[key];
-  }
-
-  if ((key = keys.shift())) {
-    owner[key] = value;
-    return owner[key];
-  }
-
-  return;
 };
 
 /**

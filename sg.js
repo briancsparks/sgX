@@ -1002,16 +1002,13 @@ sg.mkOnError = function(errFn) {
  *          if (!ok(err, result1, result2)) { return err; }
  */
 sg.ok = function(err /*, [argN]*/) {
-  if (err)  { console.error(err); return false; }
+  if (err)  { return false; }
 
   var result = true;
   _.each(_.rest(arguments), function(value, index) {
     var is = !isnt(value);
 
     result = result && is;
-    if (!is) {
-      console.error("Param "+index+" is "+value);
-    }
   });
 
   return result;

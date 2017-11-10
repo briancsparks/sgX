@@ -797,6 +797,21 @@ sg.normlz = function(url) {
   return result;
 };
 
+sg.stringSize = function(number) {
+  var x = number;
+  var y;
+
+  if ((y = Math.trunc(x/1000)) < 1000) {
+    return y+'kb';
+  }
+
+  if ((y = Math.trunc(x/1000000)) < 1000) {
+    return y+'mb';
+  }
+
+  return Math.trunc(x/1000000000)+'gb';
+};
+
 _.each(sg, function(value, key) {
   exports[key] = value;
 });

@@ -95,3 +95,19 @@ test('lpad does not remove zeros', t => {
   t.is(sg.lpad(200, 5), '200  ');
 });
 
+test('stringSize works', t => {
+  t.is(sg.stringSize(123456789), '123mb');
+});
+
+test('stringSize works for kb', t => {
+  t.is(sg.stringSize(123456), '123kb');
+});
+
+test('stringSize works for kb -- 2', t => {
+  t.is(sg.stringSize(1234), '1kb');
+});
+
+test('stringSize works for gb', t => {
+  t.is(sg.stringSize(1234567890), '1gb');
+});
+

@@ -332,7 +332,10 @@ sg.startOfDay = function(d) {
 sg.pad = function(val, len, sep_) {
   var sep = sep_;
   if (!sep) {
-    if (_.isNumber(val))  { sep = '0'; }
+    if (_.isNumber(val)) {
+      if (val >= 0)       { sep = '0'; }
+      else                { sep = ' '; }
+    }
     else                  { sep = ' '; }
   }
 
@@ -345,11 +348,7 @@ sg.pad = function(val, len, sep_) {
 };
 
 var lpad = sg.lpad = function(val, len, sep_) {
-  var sep = sep_;
-  if (!sep) {
-    if (_.isNumber(val))  { sep = '0'; }
-    else                  { sep = ' '; }
-  }
+  var sep = sep_ || ' ';
 
   var str = '' + val;
   while (str.length < len) {

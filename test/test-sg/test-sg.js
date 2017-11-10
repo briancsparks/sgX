@@ -111,3 +111,35 @@ test('stringSize works for gb', t => {
   t.is(sg.stringSize(1234567890), '1gb');
 });
 
+test('_push works', t => {
+  var   arr   = [];
+  const index = sg._push(arr, 'three');
+
+  t.is(index, 0);
+  t.deepEqual(arr, ['three']);
+});
+
+test('_push works for non-empty Array', t => {
+  var   arr   = [1,2];
+  const index = sg._push(arr, 'three');
+
+  t.is(index, 2);
+  t.deepEqual(arr, [1,2,'three']);
+});
+
+test('_push does not push undefined', t => {
+  var   arr   = [1,2];
+  const index = sg._push(arr, undefined);
+
+  t.is(index, undefined);
+  t.deepEqual(arr, [1,2]);
+});
+
+test('_push does  push null', t => {
+  var   arr   = [1,2];
+  const index = sg._push(arr, null);
+
+  t.is(index, 2);
+  t.deepEqual(arr, [1,2, null]);
+});
+

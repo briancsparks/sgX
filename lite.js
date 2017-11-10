@@ -128,6 +128,22 @@ var ap = sg.ap = function(a, v) {
 };
 
 /**
+ *  Pushes the item into the array, and returns the index of where it got
+ *  pushed at.
+ *
+ *  If x is undefined, `_push()` will not push it, and returns undefined.
+ */
+sg._push = function(arr, x) {
+  if (_.isUndefined(x))     { return x; }
+
+  const length = arr.length;
+
+  arr.push(x);
+
+  return length;
+};
+
+/**
  *  Returns the keys of an object.
  *
  *  Just like _.keys, except it will return null or undefined if given an

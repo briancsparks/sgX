@@ -1106,13 +1106,15 @@ sg.include = function(mod, dir) {
 
   var i;
   var config      = sgConfig();
+  var modRoot     = mod.split(path.sep)[0];
   var includePath = config.includePath || [];
 
   includePath.push(path.join(process.env.HOME, 'dev'));
 
   for (i=0; i<includePath.length; ++i) {
-    var localPath = path.join(includePath[i], mod);
-    if (fs.existsSync(path.join(localPath, 'package.json'))) {
+    var localPath     = path.join(includePath[i], mod);
+    var localPathRoot = path.join(includePath[i], modRoot);
+    if (fs.existsSync(path.join(localPathRoot, 'package.json'))) {
       return require(localPath);
     }
   }

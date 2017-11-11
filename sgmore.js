@@ -568,7 +568,7 @@ exports.load = function(sg, _) {
       });
 
       analyzeStats();
-      sg.macAddress_ = ifaceStats.ether || sg.macAddress_;
+//      sg.macAddress_ = ifaceStats.ether || sg.macAddress_;
 
       return callback(null, sg.macAddress_);
     });

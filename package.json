@@ -6,6 +6,9 @@
   "bin": {
     "sg": "index.js"
   },
+  "directories": {
+    "test": "test"
+  },
   "scripts": {
     "test": "ava"
   },

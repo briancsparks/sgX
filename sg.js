@@ -842,13 +842,19 @@ sg.prepUsage = function() {
     };
 
     u.sage = function(what, msg, callback_) {
-      var callback = callback_ || function(){};
+      var args      = _.toArray(arguments);
+      var callback  = _.isFunction(_.last(args)) ? args.pop() : function() {};
+      var msg       = args.pop();
+      var what      = args.pop();
 
-      process.stderr.write(chalk.red('Bad '+what+' '+msg)+'\n');
+      if (what && msg) {
+        process.stderr.write(chalk.red('Bad '+what+' '+msg)+'\n');
+      }
+
       process.stderr.write('\nUsage:     '+chalk.bold(example)+'\n\n');
       _.each(_.keys(options), function(key) {
-        var msg = '  '+lpad(key+': ', 16)+lpad(descr[key], 35)+' (as: '+options[key].join(' or ')+')';
-        process.stderr.write(msg+'\n');
+        var msg2 = '  '+lpad(key+': ', 16)+lpad(descr[key], 35)+' (as: '+options[key].join(' or ')+')';
+        process.stderr.write(msg2+'\n');
       });
 
       return callback(null, {});

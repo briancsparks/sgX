@@ -828,6 +828,44 @@ sg.stringSize = function(number) {
   return Math.trunc(x/1000000000)+'gb';
 };
 
+sg.insideOut = sg.io = function(objs, key) {
+  return _.map(objs, function(obj) {
+    //console.log('o-', sg.kv(key, obj[key]));
+    const newOuter = obj[key];
+    //console.log('o+', newOuter);
+
+    //console.log('i-', obj);
+    const newInner = sg.kv(key, _.omit(obj, key));
+    //console.log('i+', newInner);
+
+    var result = sg._extend({}, obj[key], newInner);
+    //console.log(result);
+
+    return result;
+  });
+};
+
+
+
+
+sg.promote = function(objs, key) {
+  return sg.reduce(objs, [], function(m, obj) {
+//console.error('obj', obj);
+    var   newOuterList = obj[key];
+    if (!_.isArray(newOuterList)) {
+      newOuterList = [newOuterList];
+    }
+    _.each(newOuterList, function(subObj) {
+//console.error('subObj', subObj);
+      m.push(sg._extend({}, _.omit(obj, key), subObj));
+    });
+
+    return m;
+  });
+};
+
 _.each(sg, function(value, key) {
   exports[key] = value;
 });
+
+

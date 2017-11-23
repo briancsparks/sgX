@@ -54,7 +54,7 @@ var sgConfig = function() {
   var configFilename = path.join(process.env.HOME, '.sgsg', 'config.json');
   if (fs.existsSync(configFilename)) {
     var content = fs.readFileSync(configFilename, {encoding:'utf8'});
-    return (sgConfig_ = sg.safeJSONParse(content, {}));
+    return (sgConfig_ = sg.safeJSONParseQuiet(content, {}));
   }
 
   return (sgConfig_ = {});

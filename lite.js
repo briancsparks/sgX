@@ -707,7 +707,7 @@ var safeJSONParseQuiet = sg.safeJSONParseQuiet = function(str, def) {
 
 sg.deepCopy = function(x) {
   if (isnt(x)) { return x; }
-  return sg.safeJSONParse(JSON.stringify(x));
+  return sg.safeJSONParseQuiet(JSON.stringify(x));
 };
 
 /**

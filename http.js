@@ -66,7 +66,7 @@ sg.mwHook = function(options_) {
       return getRawBody(req, function(err, bodyBuffer) {
         if (err || !bodyBuffer)   { return next(); }
 
-        req.bodyJson = req.bodyJson || sglite.safeJSONParse(req.bufferChunks.toString());
+        req.bodyJson = req.bodyJson || sglite.safeJSONParseQuiet(req.bufferChunks.toString());
         req.bodyJson = sglite.smartAttrs(req.bodyJson);
 
         if (req.bodyJson.meta) {

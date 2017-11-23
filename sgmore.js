@@ -493,7 +493,7 @@ exports.load = function(sg, _) {
       const stdout = stdoutLines.join('\n');
       const stderr = stderrLines.join('\n');
 
-      var resultJson = sg.safeJSONParse(stdout);
+      var resultJson = sg.safeJSONParseQuiet(stdout);
 
       if (sg.isnt(resultJson)) {
         return callback({error:'ENOTJSON', stdout, stderr});

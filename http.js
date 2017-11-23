@@ -165,7 +165,7 @@ sg.getBody = function(req, callback) {
   });
 };
 
-var getRawBody = function(req, callback) {
+var getRawBody = sg.getRawBody = function(req, callback) {
   // req.end might have already been called
   if (req.bufferChunks) {
     return callback(null, req.bufferChunks);

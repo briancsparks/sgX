@@ -461,7 +461,7 @@ exports.load = function(sg, _) {
 
     return sg.exec(cmd, args, options, function(error, exitCode, stdoutChunks, stderrChunks, signal) {
       var stdout  = (stdoutChunks || []).join('').split('\n');
-      var stderr  = (stderrChunks || []).join('');
+      var stderr  = (stderrChunks || []).join('').split('\n');
       var err     = {};
 
       if (error)                { err.error     = error; }
@@ -477,7 +477,49 @@ exports.load = function(sg, _) {
         err = null;
       }
 
-      return callback(err, stdout);
+      return callback(err, stdout, stderr);
+    });
+  };
+
+  /**
+   *  A wrapper for sg.execEz() to convert the output to JSON.
+   */
+  sg.execJson = function(cmd, args /*, options, callback*/) {
+    var   args        = _.toArray(arguments);
+    const callback    = args.pop() || lib.noop;
+
+    args.push(function(err, stdoutLines, stderrLines) {
+
+      const stdout = stdoutLines.join('\n');
+      const stderr = stderrLines.join('\n');
+
+      var resultJson = sg.safeJSONParse(stdout);
+
+      if (sg.isnt(resultJson)) {
+        return callback({error:'ENOTJSON', stdout, stderr});
+      }
+
+      return callback(null, resultJson, stderr);
+    });
+
+    return sg.execEz.apply(this, args);
+  };
+
+  /**
+   *  A specific function to run curl as easily as possible.
+   *
+   */
+  sg.curl = function(args /*, options, callback*/) {
+    var   argv        = _.rest(arguments);
+    const callback    = argv.pop();
+    const options     = _.extend({quiet:true}, argv.pop() || {});
+
+    return sg.execJson('curl', args, options, function(err, json, stderr) {
+      if (stderr) {
+        console.log(stderr);
+      }
+
+      return callback(err, json);;
     });
   };
 

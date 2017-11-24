@@ -10,7 +10,7 @@
     "test": "test"
   },
   "scripts": {
-    "test": "ava"
+    "test": "nyc --reporter=html --reporter=text ava"
   },
   "repository": {
     "type": "git",
@@ -38,5 +38,8 @@
     "split": "^1.0.0",
     "superagent": "^1.7.1",
     "underscore": "^1.8.3"
+  },
+  "devDependencies": {
+    "nyc": "^11.3.0"
   }
 }

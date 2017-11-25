@@ -584,7 +584,8 @@ sg.mkSet = function(coll, sep) {
  *  it is not already present.
  */
 sg.addToSet = function(item, arr) {
-  if (arr.indexOf(item) !== -1) { return arr; }
+  if (sg.isnt(item))                { return arr; }
+  if (arr.indexOf(item) !== -1)     { return arr; }
 
   arr.push(item);
   return arr;

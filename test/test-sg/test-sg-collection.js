@@ -26,7 +26,6 @@ var promoted = [
 
 test('promote', function(t) {
   const result = sg.promote(orig, 'c');
-console.log('p', result);
   t.deepEqual(result, promoted);
 });
 
@@ -41,7 +40,6 @@ var promoted2 = [
 
 test('promote2', function(t) {
   const result = sg.promote(orig2, 'c');
-console.log('p2', result);
   t.deepEqual(result, promoted2);
 });
 

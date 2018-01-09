@@ -428,7 +428,7 @@ var deref = sg.deref = function(x, keys_) {
   if (isnt(x))      { return /* undefined */; }
   if (isnt(keys_))  { return /* undefined */; }
 
-  var keys    = _.isArray(keys_) ? keys_ : keys_.split('.'), key;
+  var keys    = _.isArray(keys_) ? keys_.slice() : keys_.split('.'), key;
   var result  = x;
 
   while (keys.length > 0) {

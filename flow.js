@@ -315,6 +315,33 @@ sg.__run2 = function(a,b,c,d) {   // self, fns, last, abort
 };
 
 /**
+ *  Replaces all attributes on result with those on all the rest of the arguments.
+ *
+ *  When using __run2, the result of the operation is passed into each step, so you can
+ *  add attributes to the result. However, using this style you cannot set the whole
+ *  result object at once. (You cannot do `result = {ack:'bar'}`) You would have to remove
+ *  all existing attributes, and add all new ones -- thats what this function does.
+ *
+ */
+sg.replaceResult = function(result /*, ...replaces*/) {
+
+  var replaces = _.rest(arguments);
+
+  // First, clobber the result
+  _.each(result, function(value, key) {
+    delete result[key];
+  });
+
+  // Then, loop over all the other fn params, and add those to result
+  _.each(replaces, function(replace) {
+    _.each(replace, function(value, key) {
+      result[key] = value;
+    });
+  });
+}
+
+
+/**
  *  Calls fn until it wants to quit
  */
 sg.until = function(/* [options,] fn, callback */) {

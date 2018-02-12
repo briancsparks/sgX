@@ -40,6 +40,70 @@ sg.ok = function(err /*, [argN]*/) {
 };
 
 /**
+ *  Copy-and-pasted from sg.js
+ */
+function SgError(message) {
+  this.name  = 'SgError';
+  this.stack = (new Error()).stack;
+
+  if (_.isString(message) && message.startsWith('ENO')) {
+    this.name     = _.first(message.split(/[^a-z0-9]/i));
+    this.message  = message || 'Default Message';
+  } else {
+    this.message  = message || 'Default Message';
+  }
+}
+SgError.prototype = Object.create(Error.prototype);
+SgError.prototype.constructor = SgError;
+
+/**
+ *  Copy-and-pasted from sg.js
+ */
+var toError = function(e) {
+  if (e instanceof Error)     { return e; }
+  if (_.isString(e))          { return new SgError(e); }
+  if (_.isArray(e))           { return new Error(JSON.stringify(e)); }
+
+  if (_.isObject(e)) {
+    if (_.isString(e.error))  { return new SgError(e.error); }
+    if (_.isString(e.Error))  { return new SgError(e.Error); }
+    if (_.isString(e.err))    { return new SgError(e.err); }
+    if (_.isString(e.Err))    { return new SgError(e.Err); }
+  }
+
+  if (e === null)             { return e; }
+  if (e === undefined)        { return e; }
+
+  return new Error('' + e);
+};
+
+/**
+ *  Copy-and-pasted from sg.js
+ */
+var reportError = function(e, message) {
+  if (!e) { return; }
+
+  var result = toError(e);
+  var msg    = '';
+
+  if (_.isString(e)) {
+    msg += e+' at ';
+  }
+
+  if (message) {
+    msg += message+': ';
+  }
+
+  if (msg) {
+    process.stderr.write(msg);
+  }
+
+  console.error(result);
+
+  return result;
+};
+
+/**
  *  When you have a next function, like in an sg.__run(...), you could get an
  *  err response at any time.  If you want to log the error, and skip the rest
  *  of the step, but want to continue on with the next step, use this.
@@ -188,7 +252,7 @@ sg.__mkDiell = function(callback) {
     }
 
     /* otherwise -- callback with the error */
-    sg.reportError(a, b);
+    reportError(a, b);
     return callback(a);
   };
 
@@ -453,6 +517,142 @@ var __eachll2 = sg.__eachll = function(list_ /*, max_, fn_, callback_*/ ) {
   return sg.__eachll(_.keys(list_), max, function(key, nextKey) {
     fn(list_[key], nextKey, key, list_);
   }, callback);
+};
+
+/**
+ *  die() function copy-and-patsted from sg.js
+ */
+var die = function(a,b,c) {
+  if (arguments.length === 0)       { return die(1, ''); }
+  if (arguments.length === 1) {
+    if (_.isString(a))              { return die(1, a); }
+    if (_.isNumber(a))              { return die(a, ''); }
+  }
+
+  if (arguments.length >= 2) {
+    if (_.isFunction(b))            { reportError(a, c); return b(a); }
+  }
+
+  if (b) {
+    process.stderr.write(b);
+    process.stderr.write('\n');
+  }
+
+  process.exit(a);
+};
+
+/**
+ *  Internally wrap a function so error handling is not so boiler-plateish.
+ */
+sg.iwrap = function(myname, fncallback /*, abort, body_callback*/) {
+  var   args             = _.rest(arguments, 2);
+  const body_callback    = args.pop();
+  var   abort            = args.shift();
+
+  abort = abort || function(err, msg) {
+    if (msg)  { return die(err, fncallback, msg); }
+    return fncallback(err);
+  };
+
+  var abortCalling;
+  var abortParams;
+
+  var eabort = function(callback, abortCalling2) {
+    return function(err) {
+      if (!err) { return callback.apply(this, arguments); }
+
+      const abortCalling_ = abortCalling || abortCalling2;     abortCalling  = null;
+      const abortParams_  = abortParams;                       abortParams   = null;
+
+      var msg = '';
+
+      if (abortCalling_) {
+        msg += `${myname}__${abortCalling_}`;
+      }
+
+      if (abortParams_) {
+        msg += `: ${abortParams}`;
+      }
+
+      return abort(err, msg);
+    };
+  };
+
+  eabort.calling = function(calledName) {
+    abortCalling = calledName;
+  };
+
+  eabort.p = function(params_) {
+    const params = _.isObject(params_) ? params_ : { param: params_};
+    abortParams = JSON.stringify(params);
+    return params_;
+  };
+
+  return body_callback(eabort);
+};
+
+/**
+ *  Just like __run, but return enext, enag, ewarn -- which is what you really want.
+ */
+sg.__run3 = function(a, b) {
+  var fns, callback;
+
+  if (_.isArray(a)) {
+    fns = a; callback = b;
+  } else {
+    fns = b; callback = a;
+  }
+
+  return sg.__each(
+    fns,
+    function(fn, next, index, coll) {
+
+      // On error, go to the next function, no message
+      const enext = function(callback) {
+        return function(err) {
+          if (err) { return next(); }
+          return callback.apply(this, arguments);
+        };
+      };
+
+      // On error, go to the next function, with warning
+      var   warnMsg;
+      var   ewarn = function(callback, warnMsg2) {
+        return function(err) {
+          const warnMsg_ = warnMsg || warnMsg2;       warnMsg = null;
+          if (err) {
+            console.error('WARNING:'+warnMsg_+'  '+JSON.stringify(err));
+            return next();
+          }
+          return callback.apply(this, arguments);
+        };
+      };
+
+      ewarn.msg = function(msg) {
+        warnMsg = msg;
+      };
+
+      // On error, just resume, but with a nag
+      var   nagMsg;
+      var   enag = function(callback, nagMsg2) {
+        return function(err) {
+          const nagMsg_ = nagMsg || nagMsg2;       nagMsg = null;
+          if (err) {
+            console.error('NAG:'+nagMsg_+'  '+JSON.stringify(err));
+          }
+          return callback.apply(this, arguments);
+        };
+      };
+
+      enag.msg = function(msg) {
+        nagMsg = msg;
+      };
+
+
+      return fn(next, enext, enag, ewarn);
+    },
+    callback || function() {}
+  );
 };
 
 _.each(sg, function(value, key) {

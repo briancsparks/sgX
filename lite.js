@@ -201,6 +201,32 @@ var isPod = sg.isPod = function(x) {
 };
 
 /**
+ *  Was the callback called to mean a good result? (Are the results OK?)
+ *
+ *  When you get a callback: `function(err, result1, result2) {...}` you can call
+ *
+ *          if (ok(err, result1, result2)) {
+ *            // result1 and 2 are valid
+ *          }
+ *
+ *  or:
+ *
+ *          if (!ok(err, result1, result2)) { return err; }
+ */
+sg.ok = function(err /*, [argN]*/) {
+  if (err)  { return false; }
+
+  var result = true;
+  _.each(_.rest(arguments), function(value, index) {
+    var is = !isnt(value);
+
+    result = result && is;
+  });
+
+  return result;
+};
+
+/**
  *  Returns true if the argument === null or === undefined.
  *
  */

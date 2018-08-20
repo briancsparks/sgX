@@ -10,7 +10,6 @@ var util                      = require('util');
 var urlLib                    = require('url');
 var assert                    = require('assert');
 var path                      = require('path');
-var substackDeepEqual         = require('deep-equal');
 
 // Here I am :)
 var sg    = {extlibs:{_:_}};
@@ -42,6 +41,8 @@ sg = _.extend({}, sg, require('./flow'));
 // Get functions from http.js
 sg = _.extend({}, sg, require('./http'));
 
+sg.v2 = {};
+
 var chalk;
 
 var sgConfig_;
@@ -60,10 +61,6 @@ var sgConfig = function() {
   return (sgConfig_ = {});
 };
 sg.config = sgConfig;
-
-var deepEqual = sg.deepEqual = function(a,b) {
-  return substackDeepEqual(a,b,{strict:true});
-};
 
 sg.timeBetween = function(a_, b_) {
   var a     = _.isDate(a) ? a.getTime() : a;
@@ -456,6 +453,10 @@ var inspect = sg.inspect = function(x) {
 
 var inspectFlat = sg.inspectFlat = function(x) {
   return sg.inspect(x).replace(/ *\n */g, ' ');
+};
+
+sg.v2.inspect = function(x, colors) {
+  return util.inspect(x, {depth:null, colors: colors || false});
 };
 
 sg.dbgReport = function(err) {
@@ -1082,7 +1083,7 @@ sg.httpRouteMatches = function(a /*, [fields], route*/) {
  *  caller can sg.include('xyz') || require('xyz').
  */
 sg.include = function(mod, dir) {
-  var fs = sg.extlibs.fs;
+  var fs = require('fs');
 
   var i;
   var config      = sgConfig();

@@ -3,8 +3,11 @@
  *  The super light weight functionality.
  */
 
-var _   = require('underscore');
-var sg  = {};
+var _                         = require('underscore');
+var substackDeepEqual         = require('deep-equal');
+var deepExtend_               = require('deep-extend');
+var deepExtend                = (...args) => deepExtend_({}, ...args);
+var sg                        = {};
 
 // Forward declarations
 var isnt, anyIsnt;
@@ -890,6 +893,12 @@ sg.promote = function(objs, key) {
     return m;
   });
 };
+
+var deepEqual = sg.deepEqual = function(a,b) {
+  return substackDeepEqual(a,b,{strict:true});
+};
+
+sg.deepExtend = deepExtend;
 
 _.each(sg, function(value, key) {
   exports[key] = value;

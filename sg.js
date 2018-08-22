@@ -45,8 +45,22 @@ sg.v2 = {};
 
 var chalk;
 
+var libConfig = function(libName) {
+  var fs = require('fs');
+
+  var configFilename = path.join(process.env.HOME, '.sgsg', libName+'-config.json');
+  if (fs.existsSync(configFilename)) {
+    var content = fs.readFileSync(configFilename, {encoding:'utf8'});
+    return (sg.safeJSONParseQuiet(content, null));
+  }
+
+  return {};
+};
+
 var sgConfig_;
-var sgConfig = function() {
+var sgConfig = function(libName) {
+  if (libName)    { return libConfig(libName); }
+
   var fs = require('fs');
 
   // If we have it, return it

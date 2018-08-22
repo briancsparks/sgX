@@ -592,6 +592,58 @@ sg.iwrap = function(myname, fncallback /*, abort, body_callback*/) {
 };
 
 /**
+ *  Use this function in a place where you use enext, ewarn, enag.
+ *
+ */
+sg.enone = function(callback) {
+  return function() {
+    return callback.apply(this, arguments);
+  };
+};
+
+/**
+ *  A stand alone warn
+ *
+ */
+sg.ewarn = function(on_err, callback, msg_) {
+  const msg = msg_ || 'something_went_wrong';
+
+  return function(err) {
+    if (err) {
+      console.error('WARNING:'+msg+'  '+JSON.stringify(err));
+      return on_err(err);
+    }
+    return callback.apply(this, arguments);
+  };
+};
+
+/**
+ *  A stand alone ignore
+ *
+ */
+sg.enext = function(on_err, callback) {
+  return function(err) {
+    if (err) { return on_err(err); }
+    return callback.apply(this, arguments);
+  };
+};
+
+/**
+ *  A standalone nag function.
+ *
+ */
+sg.enag = function(callback, nagMsg_) {
+  const nagMsg = nagMsg_ || 'something_went_wrong';
+
+  return function(err) {
+    if (err) {
+      console.error('NAG:'+nagMsg+'  '+JSON.stringify(err));
+    }
+    return callback.apply(this, arguments);
+  };
+};
+
+/**
  *  Just like __run, but return enext, enag, ewarn -- which is what you really want.
  */
 sg.__run3 = function(a, b) {

@@ -48,7 +48,7 @@ var chalk;
 var libConfig = function(libName) {
   var fs = require('fs');
 
-  var configFilename = path.join(process.env.HOME, '.sgsg', libName+'-config.json');
+  var configFilename = path.join(require('os').homedir(), '.sgsg', libName+'-config.json');
   if (fs.existsSync(configFilename)) {
     var content = fs.readFileSync(configFilename, {encoding:'utf8'});
     return (sg.safeJSONParseQuiet(content, null));
@@ -66,7 +66,7 @@ var sgConfig = function(libName) {
   // If we have it, return it
   if (sgConfig_)  { return sgConfig_; }
 
-  var configFilename = path.join(process.env.HOME, '.sgsg', 'config.json');
+  var configFilename = path.join(require('os').homedir(), '.sgsg', 'config.json');
   if (fs.existsSync(configFilename)) {
     var content = fs.readFileSync(configFilename, {encoding:'utf8'});
     return (sgConfig_ = sg.safeJSONParseQuiet(content, {}));
@@ -1104,7 +1104,7 @@ sg.include = function(mod, dir) {
   var modRoot     = mod.split(path.sep)[0];
   var includePath = config.includePath || [];
 
-  includePath.push(path.join(process.env.HOME, 'dev'));
+  includePath.push(path.join(require('os').homedir(), 'dev'));
 
   for (i=0; i<includePath.length; ++i) {
     var localPath     = path.join(includePath[i], mod);
